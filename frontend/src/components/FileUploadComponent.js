@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './FileUploadComponent.css';
 
-function FileUploadComponent({ uploadedFiles, onFilesUploaded }) {
+function FileUploadComponent({ onFilesUploaded, onDataReceived, onTextAreaDataUpdate }) {
   const [selectedFiles, setSelectedFiles] = useState([]);
 
   const handleFileSelect = (e) => {
@@ -20,9 +20,54 @@ function FileUploadComponent({ uploadedFiles, onFilesUploaded }) {
     });
 
     try {
-      // You can make an API call here if needed
-      // For now, we'll just call the onFilesUploaded callback
-      onFilesUploaded();
+      onFilesUploaded(); // Show loading spinner
+
+      const response = await fetch('http://localhost:5000/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.body) {
+        console.error('ReadableStream not supported in this browser.');
+        return;
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+      let receivedData = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Notify that data has started arriving
+        if (!receivedData) {
+          onDataReceived();
+          receivedData = true;
+        }
+
+        let parsed = false;
+        while (!parsed) {
+          try {
+            const jsonStr = buffer.trim();
+            if (jsonStr.endsWith('}')) {
+              const parsedData = JSON.parse(jsonStr);
+              onTextAreaDataUpdate((prevData) => ({
+                ...prevData,
+                ...parsedData,
+              }));
+              buffer = '';
+            }
+            parsed = true;
+          } catch (e) {
+            // If JSON is incomplete, wait for more data
+            parsed = true;
+          }
+        }
+      }
     } catch (error) {
       console.error('Error uploading files:', error);
     }
@@ -40,17 +85,15 @@ function FileUploadComponent({ uploadedFiles, onFilesUploaded }) {
           </ul>
         </div>
       ) : (
-        <div className="upload-section">
-          <input
-            type="file"
-            accept=".pdf"
-            multiple
-            onChange={handleFileSelect}
-          />
-          <button onClick={handleUpload}>Upload</button>
-        </div>
-      )}
-    </div>
+      <div className="upload-section">
+        <input
+          type="file"
+          accept=".pdf"
+          multiple
+          onChange={handleFileSelect}
+        />
+        <button onClick={handleUpload}>Upload</button>
+      </div>
   );
 }
 

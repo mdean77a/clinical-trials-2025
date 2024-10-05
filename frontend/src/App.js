@@ -4,7 +4,6 @@ import TextAreaComponent from './components/TextAreaComponent';
 import DownloadPDFComponent from './components/DownloadPDFComponent';
 
 function App() {
-  const [uploadedFiles, setUploadedFiles] = useState([]);
   const [textAreaData, setTextAreaData] = useState({});
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -24,17 +23,19 @@ function App() {
 
   return (
     <div className="App">
-      <FileUploadComponent
-        uploadedFiles={uploadedFiles}
-        onFilesUploaded={handleFilesUploaded}
-      />
+      {!showForm && (
+        <FileUploadComponent
+          onFilesUploaded={handleFilesUploaded}
+          onDataReceived={handleDataReceived}
+          onTextAreaDataUpdate={handleTextAreaDataUpdate}
+        />
+      )}
       {loading && <div className="loading-spinner">Loading...</div>}
       {showForm && (
         <>
           <TextAreaComponent
             textAreaData={textAreaData}
             onTextAreaDataUpdate={handleTextAreaDataUpdate}
-            onDataReceived={handleDataReceived}
           />
           <DownloadPDFComponent textAreaData={textAreaData} />
         </>

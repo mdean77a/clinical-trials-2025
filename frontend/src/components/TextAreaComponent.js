@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './TextAreaComponent.css';
 import './animations.css';
 
-function TextAreaComponent({ textAreaData, onTextAreaDataUpdate, onDataReceived }) {
+function TextAreaComponent({ textAreaData, onTextAreaDataUpdate }) {
   const initialData = {
     // Part 1: Master Consent
     summary: '',
@@ -21,7 +21,7 @@ function TextAreaComponent({ textAreaData, onTextAreaDataUpdate, onDataReceived 
     costAndCompensation: '',
   };
 
-  const [data, setData] = useState(initialData);
+  const [data, setData] = useState(textAreaData || initialData);
   const [activeField, setActiveField] = useState(null);
   const [aiAssistantVisible, setAiAssistantVisible] = useState(false);
   const [aiAssistantInput, setAiAssistantInput] = useState('');
@@ -32,63 +32,10 @@ function TextAreaComponent({ textAreaData, onTextAreaDataUpdate, onDataReceived 
     'Part 2: Site Specific Information': false,
   });
 
+  // Update local state when textAreaData prop changes
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch('http://localhost:5000/upload', {
-          method: 'POST',
-          body: new FormData(), // Empty form data since files are already uploaded
-        });
-
-        if (!response.body) {
-          console.error('ReadableStream not supported in this browser.');
-          return;
-        }
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder('utf-8');
-        let buffer = '';
-        let receivedData = false;
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-
-          // Notify that data has started arriving
-          if (!receivedData) {
-            onDataReceived();
-            receivedData = true;
-          }
-
-          let parsed = false;
-          while (!parsed) {
-            try {
-              const jsonStr = buffer.trim();
-              if (jsonStr.endsWith('}')) {
-                const parsedData = JSON.parse(jsonStr);
-                setData((prevData) => {
-                  const updatedData = { ...prevData, ...parsedData };
-                  onTextAreaDataUpdate(updatedData);
-                  return updatedData;
-                });
-                buffer = '';
-              }
-              parsed = true;
-            } catch (e) {
-              // If JSON is incomplete, wait for more data
-              parsed = true; // Exit the loop to read more data
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-    };
-
-    fetchData();
-  }, [onTextAreaDataUpdate, onDataReceived]);
+    setData(textAreaData);
+  }, [textAreaData]);
 
   const handleFocus = (field) => {
     setActiveField(field);
