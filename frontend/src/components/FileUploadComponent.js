@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import './FileUploadComponent.css';
+import './animations.css';
 
 function FileUploadComponent({ onFilesUploaded, onDataReceived, onTextAreaDataUpdate }) {
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleFileSelect = (e) => {
     setSelectedFiles([...e.target.files]);
@@ -20,7 +23,8 @@ function FileUploadComponent({ onFilesUploaded, onDataReceived, onTextAreaDataUp
     });
 
     try {
-      onFilesUploaded(); // Show loading spinner
+      setIsUploading(true);
+      onFilesUploaded(); // Show loading spinner in App.js
 
       const response = await fetch('http://localhost:5000/upload', {
         method: 'POST',
@@ -31,6 +35,11 @@ function FileUploadComponent({ onFilesUploaded, onDataReceived, onTextAreaDataUp
         console.error('ReadableStream not supported in this browser.');
         return;
       }
+
+      // Update the list of uploaded files
+      setUploadedFiles(selectedFiles);
+      setSelectedFiles([]); // Clear selected files
+      setIsUploading(false); // Hide upload section
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder('utf-8');
@@ -53,14 +62,13 @@ function FileUploadComponent({ onFilesUploaded, onDataReceived, onTextAreaDataUp
         while (!parsed) {
           try {
             const jsonStr = buffer.trim();
-            if (jsonStr.endsWith('}')) {
-              const parsedData = JSON.parse(jsonStr);
-              onTextAreaDataUpdate((prevData) => ({
-                ...prevData,
-                ...parsedData,
-              }));
-              buffer = '';
-            }
+            // Try to parse the buffer as JSON
+            const parsedData = JSON.parse(jsonStr);
+            onTextAreaDataUpdate((prevData) => ({
+              ...prevData,
+              ...parsedData,
+            }));
+            buffer = '';
             parsed = true;
           } catch (e) {
             // If JSON is incomplete, wait for more data
@@ -75,7 +83,7 @@ function FileUploadComponent({ onFilesUploaded, onDataReceived, onTextAreaDataUp
 
   return (
     <div className="file-upload-component">
-      {uploadedFiles && uploadedFiles.length > 0 ? (
+      {uploadedFiles.length > 0 ? (
         <div className="uploaded-files-list">
           <h3>Uploaded Files:</h3>
           <ul>
@@ -85,15 +93,19 @@ function FileUploadComponent({ onFilesUploaded, onDataReceived, onTextAreaDataUp
           </ul>
         </div>
       ) : (
-      <div className="upload-section">
-        <input
-          type="file"
-          accept=".pdf"
-          multiple
-          onChange={handleFileSelect}
-        />
-        <button onClick={handleUpload}>Upload</button>
-      </div>
+        <div className="upload-section">
+          <input
+            type="file"
+            accept=".pdf"
+            multiple
+            onChange={handleFileSelect}
+          />
+          <button onClick={handleUpload} disabled={isUploading}>
+            {isUploading ? 'Uploading...' : 'Upload'}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
