@@ -1,0 +1,10 @@
+langchain_core
+langchain_openai
+langchain_community
+langchain-qdrant
+qdrant-client
+langsmith
+openai
+tiktoken
+cohere
+lxml

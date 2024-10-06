@@ -1,0 +1,28 @@
+.file-list-component {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  .file-list-component h2 {
+    margin-bottom: 20px;
+  }
+  
+  .file-list-component ul {
+    list-style-type: none;
+    padding: 0;
+  }
+  
+  .file-list-component li {
+    margin: 10px 0;
+    text-align: left;
+  }
+  
+  .file-list-component label {
+    cursor: pointer;
+  }
+  
+  .file-list-component button {
+    margin-top: 20px;
+  }
+  

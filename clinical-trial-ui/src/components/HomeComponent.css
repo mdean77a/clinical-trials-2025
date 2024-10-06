@@ -1,0 +1,34 @@
+.home-component {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  .option-selection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .option-selection h2 {
+    margin-bottom: 20px;
+  }
+  
+  .upload-section {
+    text-align: center;
+  }
+  
+  .upload-section input[type='file'] {
+    margin-bottom: 20px;
+  }
+  
+  .upload-section button {
+    margin-top: 10px;
+  }
+  
+  @media (max-width: 600px) {
+    .home-component {
+      padding: 10px;
+    }
+  }
+  

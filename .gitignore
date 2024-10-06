@@ -1,2 +1,6 @@
 **/.bin
 **/.venv
+.vscode/settings.json
+**/.env
+**/uploaded_files/
+**/file_status.json
