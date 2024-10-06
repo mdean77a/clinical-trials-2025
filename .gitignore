@@ -4,3 +4,5 @@
 **/.env
 **/uploaded_files/
 **/file_status.json
+.vscode/launch.json
+**/__pycache__/

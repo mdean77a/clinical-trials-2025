@@ -39,11 +39,6 @@ cached_embedder = CacheBackedEmbeddings.from_bytes_store(
     embedding_model, store, namespace=embedding_model.model
 )
 
-
-
-app = Flask(__name__)
-CORS(app)
-
 UPLOAD_FOLDER = 'uploaded_files'
 PROCESSED_FOLDER = 'processed_files'
 DB_FILE = 'file_status.json'
@@ -74,6 +69,10 @@ def upload_files():
         file_status[file.filename] = 'processed'
     save_file_status()
     return jsonify({'message': 'Files uploaded and processing started.'})
+
+@app.route('/start-agents', methods=['GET'])
+def start_agents():
+    return jsonify({'message': 'Agents started.'})
 
 @app.route('/existing-files', methods=['GET'])
 def get_existing_files():

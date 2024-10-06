@@ -16,6 +16,9 @@ function FormSelectionComponent({ onFormOptionSelected }) {
       <button onClick={() => handleFormSelect('Some Other Form 2')}>
         Some Other Form 2
       </button>
+      <button onClick={() => handleFormSelect('Chat with your trial documents')}>
+        Chat with your trial
+      </button>
     </div>
   );
 }
