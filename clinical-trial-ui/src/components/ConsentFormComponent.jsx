@@ -1,5 +1,3 @@
-// src/ConsentFormComponent.jsx
-
 import React, { useState, useEffect } from 'react';
 import './ConsentFormComponent.css';
 import './animations.css';
@@ -39,23 +37,31 @@ function ConsentFormComponent({
 
   // Fetch consent form data from the backend
   useEffect(() => {
-    const fetchConsentFormData = async () => {
+    const generateConsentForm = async () => {
       try {
-        const response = await fetch('http://localhost:5000/consent-form', {
+        const response = await fetch('http://localhost:5000/generate-consent-form', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ files: selectedFiles }),
         });
 
-        if (!response.body) {
+        // Assuming the response sends back an acknowledgement
+        const ack = await response.json();
+        if (ack.status !== 'accepted') {
+          console.error('Consent form generation not accepted by backend.');
+          return;
+        }
+
+        // Start listening to the streaming data
+        const streamResponse = await fetch('http://localhost:5000/consent-form-stream');
+        if (!streamResponse.body) {
           console.error('ReadableStream not supported in this browser.');
           return;
         }
 
-        const reader = response.body.getReader();
+        const reader = streamResponse.body.getReader();
         const decoder = new TextDecoder('utf-8');
         let buffer = '';
-        let receivedData = false;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -63,11 +69,7 @@ function ConsentFormComponent({
 
           buffer += decoder.decode(value, { stream: true });
 
-          if (!receivedData) {
-            setLoading(false);
-            receivedData = true;
-          }
-
+          // Process the buffer to extract JSON objects
           let parsed = false;
           while (!parsed) {
             try {
@@ -90,13 +92,15 @@ function ConsentFormComponent({
               parsed = true;
             }
           }
+
+          setLoading(false);
         }
       } catch (error) {
-        console.error('Error fetching consent form data:', error);
+        console.error('Error generating consent form:', error);
       }
     };
 
-    fetchConsentFormData();
+    generateConsentForm();
   }, [selectedFiles, onTextAreaDataUpdate]);
 
   // AI Assistant functionality
@@ -115,7 +119,7 @@ function ConsentFormComponent({
   const handleAiAssistantSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:5000/ai-assistant', {
+      const response = await fetch('http://localhost:5000/revise', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -125,10 +129,38 @@ function ConsentFormComponent({
         }),
       });
 
-      const result = await response.json();
-      const newData = { ...data, [activeField]: result.content };
-      setData(newData);
-      onTextAreaDataUpdate(newData);
+      // Assuming the response sends back an acknowledgement
+      const ack = await response.json();
+      if (ack.status !== 'accepted') {
+        console.error('Revise request not accepted by backend.');
+        return;
+      }
+
+      // Start listening to the streaming data
+      const streamResponse = await fetch(
+        `http://localhost:5000/revise-stream?field=${encodeURIComponent(activeField)}`
+      );
+      if (!streamResponse.body) {
+        console.error('ReadableStream not supported in this browser.');
+        return;
+      }
+
+      const reader = streamResponse.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Update the text area with the streamed content
+        const newData = { ...data, [activeField]: buffer };
+        setData(newData);
+        onTextAreaDataUpdate(newData);
+      }
+
       setAiAssistantInput('');
       setAiAssistantVisible(false);
     } catch (error) {
@@ -179,7 +211,10 @@ function ConsentFormComponent({
         <div className="text-area-component">
           {sections.map((section, sIndex) => (
             <div key={sIndex} className="consent-section">
-              <h2 onClick={() => toggleSection(section.key)} className="collapsible-header">
+              <h2
+                onClick={() => toggleSection(section.key)}
+                className="collapsible-header"
+              >
                 {section.title}
                 <span className="toggle-icon">
                   {collapsedSections[section.key] ? '+' : '-'}
@@ -200,7 +235,10 @@ function ConsentFormComponent({
                           value={data[field.key]}
                           onFocus={() => handleFocus(field.key)}
                           onChange={(e) => {
-                            const newData = { ...data, [field.key]: e.target.value };
+                            const newData = {
+                              ...data,
+                              [field.key]: e.target.value,
+                            };
                             setData(newData);
                             onTextAreaDataUpdate(newData);
                           }}
@@ -214,7 +252,9 @@ function ConsentFormComponent({
                               type="text"
                               placeholder="Ask AI assistant"
                               value={aiAssistantInput}
-                              onChange={(e) => setAiAssistantInput(e.target.value)}
+                              onChange={(e) =>
+                                setAiAssistantInput(e.target.value)
+                              }
                             />
                             <button type="submit">Submit</button>
                           </form>

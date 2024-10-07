@@ -1,5 +1,5 @@
 import React from 'react';
-// import './FormSelectionComponent.css';
+import './FormSelectionComponent.css';
 
 function FormSelectionComponent({ onFormOptionSelected }) {
   const handleFormSelect = (option) => {

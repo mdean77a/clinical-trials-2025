@@ -106,4 +106,36 @@
       left: 0;
     }
   }
+
+/* Positioning the text area container */
+.text-area-container {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+/* Positioning the AI assistant panel */
+.ai-assistant-panel {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  margin-left: 10px;
+  width: 300px;
+  background-color: #f9f9f9;
+  border: 1px solid #1a73e8;
+  border-radius: 4px;
+  padding: 15px;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Adjust for smaller screens */
+@media (max-width: 768px) {
+  .ai-assistant-panel {
+    position: static;
+    width: 100%;
+    margin-left: 0;
+    margin-top: 10px;
+  }
+}
+
   

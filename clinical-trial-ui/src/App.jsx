@@ -39,6 +39,7 @@ function App() {
 
   return (
     <div className="App">
+       <TransitionGroup>
       {!showConsentForm ? (
         <HomeComponent
           onFilesSelected={handleFilesSelected}
@@ -55,6 +56,7 @@ function App() {
           <button onClick={handleRestart}>Restart</button>
         </>
       )}
+      </TransitionGroup>
     </div>
   );
 }
