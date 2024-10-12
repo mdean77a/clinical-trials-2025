@@ -6,3 +6,4 @@
 **/file_status.json
 .vscode/launch.json
 **/__pycache__/
+.DS_Store
