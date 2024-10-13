@@ -17,14 +17,7 @@ function ConsentFormComponent({
     studyProcedures: '',
     alternativeProcedures: '',
     risks: '',
-    benefits: '',
-    costsAndCompensationToParticipants: '',
-    singleIRBContact: '',
-    // Part 2: Site Specific Information
-    authorizationForUseOfPHI: '',
-    whoToContact: '',
-    researchRelatedInjury: '',
-    costAndCompensation: '',
+    benefits: ''
   };
 
   const [data, setData] = useState(textAreaData || initialData);
@@ -186,21 +179,9 @@ function ConsentFormComponent({
         { key: 'studyProcedures', label: 'Study Procedures' },
         { key: 'alternativeProcedures', label: 'Alternative Procedures' },
         { key: 'risks', label: 'Risks' },
-        { key: 'benefits', label: 'Benefits' },
-        { key: 'costsAndCompensationToParticipants', label: 'Costs and Compensation to Participants' },
-        { key: 'singleIRBContact', label: 'Single IRB Contact' },
+        { key: 'benefits', label: 'Benefits' }
       ],
-    },
-    {
-      title: 'Part 2: Site Specific Information',
-      key: 'Part 2: Site Specific Information',
-      fields: [
-        { key: 'authorizationForUseOfPHI', label: 'Authorization for Use of Protected Health Information' },
-        { key: 'whoToContact', label: 'Who to Contact' },
-        { key: 'researchRelatedInjury', label: 'Research Related Injury' },
-        { key: 'costAndCompensation', label: 'Cost and Compensation' },
-      ],
-    },
+    }
   ];
 
   const toggleSection = (sectionKey) => {

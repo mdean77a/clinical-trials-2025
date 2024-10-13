@@ -100,7 +100,7 @@ chat_prompt = ChatPromptTemplate.from_messages([
 ])
 
 # LLM Models
-chat_model = ChatOpenAI(model="gpt-4o-mini")
+chat_model = ChatOpenAI(model="gpt-4o-mini",model_kwargs={"response_format": {"type": "json_object"}})
 # Typical Embedding Model
 core_embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
 
