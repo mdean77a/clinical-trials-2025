@@ -191,40 +191,31 @@ function ConsentFormComponent({
     }));
   };
 
-  const handleDownloadPDF = () => {
-    const doc = new jsPDF();
-    doc.setFontSize(18);
-    doc.text('Consent Form', 10, 10);
-    doc.setFontSize(12);
-    
-    let y = 20; // Vertical position on the PDF
-
-    sections.forEach((section) => {
-      doc.setFont('helvetica', 'bold');
-      doc.text(section.title, 10, y);
-      y += 10;
-
-      section.fields.forEach((field) => {
-        if (data[field.key]) {
-          doc.setFont('helvetica', 'normal');
-          doc.text(`${field.label}:`, 10, y);
-          y += 7;
-          doc.text(data[field.key], 15, y);
-          y += 10;
-
-          // Add page if nearing bottom of page
-          if (y > 270) {
-            doc.addPage();
-            y = 10;
-          }
-        }
+  const handleDownloadPDF = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/download-consent-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data }),
       });
-
-      y += 5; // Space between sections
-    });
-
-    doc.save('consent_form.pdf');
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF');
+      }
+  
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'consent_form.pdf');
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+    }
   };
+  
 
   const hasData = Object.values(data).some((value) => value !== '');
 

@@ -28,6 +28,7 @@ function FileListComponent({ files, onFilesSelected }) {
               <input
                 type="checkbox"
                 onChange={() => handleFileSelection(file)}
+                disabled={file.status !== 'processed'}
               />
               {file.name} {file.status !== 'processed' && '(Processing)'}
             </label>

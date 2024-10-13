@@ -4,8 +4,15 @@ from dotenv import load_dotenv
 import time
 import json
 from threading import Thread, Lock
-from flask import Flask, Response, request, stream_with_context, jsonify
+from flask import Flask, Response, request, stream_with_context, jsonify, send_file
+from reportlab.pdfgen import canvas
 from flask_cors import CORS
+from io import BytesIO
+import markdown2
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
@@ -245,21 +252,62 @@ def revise():
     Thread(target=process_revision).start()
     return jsonify({'status': 'accepted'})
 
-@app.route('/revise-stream', methods=['GET'])
-def revise_stream():
-    field = request.args.get('field')
-    def generate():
-        while field not in revision_data:
-            time.sleep(1)
-        # Stream the revised content
-        content = revision_data[field]
-        # Simulate streaming by sending chunks
-        chunk_size = 50
-        for i in range(0, len(content), chunk_size):
-            chunk = content[i:i+chunk_size]
-            yield chunk
-            time.sleep(0.5)
-    return Response(stream_with_context(generate()), mimetype='text/plain')
+@app.route('/download-consent-pdf', methods=['POST'])
+def download_consent_pdf():
+    data = request.get_json()
+    if not data or 'data' not in data:
+        return {"error": "No data provided"}, 400
+
+    content = data['data']
+    buffer = BytesIO()
+    
+    # Set up the PDF document
+    doc = SimpleDocTemplate(buffer, pagesize=letter, title="Consent Form")
+    styles = getSampleStyleSheet()
+    
+    # Customize styles for better presentation
+    section_title_style = ParagraphStyle(
+        name="SectionTitle",
+        parent=styles["Heading2"],
+        spaceAfter=10,
+        textColor=colors.darkblue,
+    )
+    
+    normal_text_style = styles["BodyText"]
+    normal_text_style.spaceAfter = 10
+
+    story = []
+
+    # Utility function to convert markdown to paragraphs
+    def add_section(title, content):
+        if content.strip():
+            # Add title
+            story.append(Paragraph(title, section_title_style))
+            story.append(Spacer(1, 10))
+
+            # Convert Markdown to HTML and then to PDF Paragraphs
+            html_content = markdown2.markdown(content)
+            paragraphs = html_content.split('\n')
+            for para in paragraphs:
+                if para.strip():
+                    story.append(Paragraph(para, normal_text_style))
+            story.append(Spacer(1, 15))
+
+    # Adding sections from the content
+    add_section("Study Summary", content.get("summary", ""))
+    add_section("Background", content.get("background", ""))
+    add_section("Number of Participants", content.get("numberOfParticipants", ""))
+    add_section("Study Procedures", content.get("studyProcedures", ""))
+    add_section("Alternative Procedures", content.get("alternativeProcedures", ""))
+    add_section("Risks", content.get("risks", ""))
+    add_section("Benefits", content.get("benefits", ""))
+
+    # Generate PDF
+    doc.build(story)
+
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True, download_name="consent_form.pdf", mimetype='application/pdf')
+
 
 if __name__ == '__main__':
     app.run(debug=True)

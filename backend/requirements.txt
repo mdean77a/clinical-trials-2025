@@ -11,3 +11,5 @@ tiktoken
 cohere
 lxml
 pymupdf
+reportlab
+markdown2
