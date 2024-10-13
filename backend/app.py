@@ -271,14 +271,21 @@ def download_consent_pdf():
         parent=styles["Heading2"],
         spaceAfter=10,
         textColor=colors.darkblue,
+        fontSize=14,
+        leading=16
     )
     
-    normal_text_style = styles["BodyText"]
-    normal_text_style.spaceAfter = 10
+    normal_text_style = ParagraphStyle(
+        name="NormalText",
+        parent=styles["BodyText"],
+        fontSize=12,
+        leading=14,
+        spaceAfter=10
+    )
 
     story = []
 
-    # Utility function to convert markdown to paragraphs
+    # Function to add sections with headers and content
     def add_section(title, content):
         if content.strip():
             # Add title
@@ -293,14 +300,36 @@ def download_consent_pdf():
                     story.append(Paragraph(para, normal_text_style))
             story.append(Spacer(1, 15))
 
-    # Adding sections from the content
-    add_section("Study Summary", content.get("summary", ""))
-    add_section("Background", content.get("background", ""))
-    add_section("Number of Participants", content.get("numberOfParticipants", ""))
-    add_section("Study Procedures", content.get("studyProcedures", ""))
-    add_section("Alternative Procedures", content.get("alternativeProcedures", ""))
-    add_section("Risks", content.get("risks", ""))
-    add_section("Benefits", content.get("benefits", ""))
+    # Adding sections with content
+    add_section("Parental Permission, Teen Assent and Authorization Document", "")
+    add_section("Study Title: Personalized Immunomodulation in Pediatric Sepsis-Induced MODS (PRECISE)", "")
+    add_section("Version Date: June 24, 2024", "")
+
+    add_section("SUMMARY", content.get("summary", ""))
+    add_section("BACKGROUND", content.get("background", ""))
+    add_section("NUMBER OF PARTICIPANTS", content.get("numberOfParticipants", ""))
+    add_section("STUDY PROCEDURES", content.get("studyProcedures", ""))
+    add_section("ALTERNATIVE PROCEDURES", content.get("alternativeProcedures", ""))
+    add_section("RISKS", content.get("risks", ""))
+    add_section("BENEFITS", content.get("benefits", ""))
+    add_section("COSTS AND COMPENSATION TO PARTICIPANTS", content.get("costsAndCompensationToParticipants", ""))
+    add_section("SINGLE IRB CONTACT", content.get("singleIRBContact", ""))
+
+    # Adding signature fields (static content, as per the provided example)
+    story.append(Spacer(1, 20))
+    story.append(Paragraph("PARENT/GUARDIAN CONSENT:", section_title_style))
+    story.append(Spacer(1, 10))
+    story.append(Paragraph("I confirm that I have read this parental permission document and have had the opportunity to ask questions. I will be given a signed copy of the parental permission form to keep.", normal_text_style))
+    story.append(Spacer(1, 15))
+    story.append(Paragraph("Child’s Name: __________________________________________", normal_text_style))
+    story.append(Spacer(1, 10))
+    story.append(Paragraph("Parent/Guardian’s Name: __________________________________", normal_text_style))
+    story.append(Spacer(1, 10))
+    story.append(Paragraph("Parent/Guardian’s Signature: ______________________________ Date/Time: ____________", normal_text_style))
+    story.append(Spacer(1, 10))
+    story.append(Paragraph("Name of Person Obtaining Authorization and Consent: ____________________________", normal_text_style))
+    story.append(Spacer(1, 10))
+    story.append(Paragraph("Signature of Person Obtaining Authorization and Consent: ____________ Date/Time: ____________", normal_text_style))
 
     # Generate PDF
     doc.build(story)
