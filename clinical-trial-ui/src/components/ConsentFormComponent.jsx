@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import parseJson from 'best-effort-json-parser';
+import { useState, useEffect, useRef } from 'react';
+import { parse } from 'best-effort-json-parser';
 import './ConsentFormComponent.css';
 import './animations.css';
 
@@ -35,15 +35,18 @@ function ConsentFormComponent({
     'Part 2: Site Specific Information': false,
   });
   const [loading, setLoading] = useState(false);
-  const [isGenerated, setIsGenerated] = useState(false);
+
+  // Use a ref to track if the consent form has already been generated
+  const isGeneratedRef = useRef(false);
 
   // Fetch consent form data from the backend and handle streaming
   useEffect(() => {
     const generateConsentForm = async () => {
       // Avoid calling the endpoint if already generated or if no files are selected
-      if (isGenerated || !selectedFiles.length) {
+      if (isGeneratedRef.current || !selectedFiles.length) {
         return;
       }
+      isGeneratedRef.current = true; // Mark as generated
 
       try {
         setLoading(true);
@@ -62,6 +65,7 @@ function ConsentFormComponent({
         }
 
         const reader = response.body.getReader();
+        setLoading(false);
         const decoder = new TextDecoder('utf-8');
         let buffer = '';
 
@@ -74,7 +78,7 @@ function ConsentFormComponent({
           // Attempt to parse JSON from buffer using best-effort-json-parser
           try {
             const jsonStr = buffer.trim();
-            const parsedData = parseJson(jsonStr);
+            const parsedData = parse(jsonStr);
             if (parsedData) {
               setData((prevData) => ({
                 ...prevData,
@@ -91,10 +95,6 @@ function ConsentFormComponent({
             continue;
           }
         }
-
-        // Set loading to false once all data is received and mark as generated
-        setLoading(false);
-        setIsGenerated(true);
       } catch (error) {
         console.error('Error generating consent form:', error);
         setLoading(false);
@@ -102,7 +102,7 @@ function ConsentFormComponent({
     };
 
     generateConsentForm();
-  }, [selectedFiles, isGenerated, onTextAreaDataUpdate]);
+  }, [selectedFiles, onTextAreaDataUpdate]);
 
   // AI Assistant functionality
   const handleFocus = (field) => {

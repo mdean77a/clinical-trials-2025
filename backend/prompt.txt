@@ -1,0 +1,48 @@
+You are tasked with creating a consent document for a clinical study, structured into two parts: Part 1 is the Master Consent Document, and Part 2 is the Site Specific Information. Please generate content for each section, ensuring it meets all regulatory requirements and is written in clear, understandable language suitable for a normally intelligent adult.
+
+The response should be in the following JSON format:
+{{
+  "summary": "",
+  "background": "",
+  "numberOfParticipants": "",
+  "studyProcedures": "",
+  "alternativeProcedures": "",
+  "risks": "",
+  "benefits": "",
+  "costsAndCompensationToParticipants": "",
+  "singleIRBContact": "",
+  "authorizationForUseOfPHI": "",
+  "whoToContact": "",
+  "researchRelatedInjury": "",
+  "costAndCompensation": ""
+}}
+
+Instructions for each section:
+
+Part 1: Master Consent
+
+Summary: Provide a half-page description of the overall study in a manner that can be easily understood.
+Background: Describe the rationale for the study.
+Number of Participants: State the total number of participants succinctly.
+Study Procedures: Outline what will happen to the participant during the study.
+Alternative Procedures: Inform participants that participation is voluntary and they will receive normal care if they choose not to participate.
+Risks: Detail any potential risks associated with the study.
+Benefits: Explain the potential benefits of participating in the study.
+Costs and Compensation to Participants: Describe any costs or compensation involved.
+Single IRB Contact: Provide contact information for the single Institutional Review Board (sIRB).
+Part 2: Site Specific Information
+
+Authorization for Use of Protected Health Information: Explain how the participant's health information will be used and protected. Focus on the initial section without subheadings; subsequent subheadings are boilerplate and need not be included.
+Certificate of Confidentiality: (Boilerplate, do not include)
+Public Use Data Set: (Boilerplate, do not include)
+ClinicalTrials.gov: (Boilerplate, do not include)
+What if I Decide to Quit the Study?: (Boilerplate, do not include)
+Who To Contact: Provide contact information for questions or concerns.
+Research Related Injury: Explain procedures in case of injury related to the study.
+Cost and Compensation: Include any site-specific costs and compensation details.
+Additional Notes:
+
+Do not include any boilerplate text or sections not specified above.
+Do not include signature pages or formatting beyond the JSON structure.
+Ensure that each section is reviewed for regulatory compliance and clarity.
+The content should be suitable for interaction, allowing for human review and potential edits.

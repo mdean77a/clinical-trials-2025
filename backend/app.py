@@ -23,7 +23,8 @@ from langchain_core.runnables.passthrough import RunnablePassthrough
 from qdrant_client.http.exceptions import UnexpectedResponse
 
 app = Flask(__name__)
-CORS(app)
+# Configure CORS to allow requests from the frontend origin
+CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
 
 load_dotenv()
 
@@ -70,12 +71,17 @@ consent_form_data['content'] = {
             # Add other fields as needed
         }
 
+current_dir = os.path.dirname(os.path.abspath(__file__))
+cache_dir = os.path.join(current_dir, 'cache')
+os.makedirs(cache_dir, exist_ok=True)
+
 
 ##  AI Prompts
-rag_system_prompt_template = """\
-You are a helpful assistant that uses the provided context to help generate clinical trials consent documentation in json format. 
+rag_system_prompt_template = ""
+with open(f'{current_dir}/prompt.txt', 'r') as file:
+    rag_system_prompt_template = file.read()
 
-"""
+print(rag_system_prompt_template)
 
 rag_message_list = [
     {"role" : "system", "content" : rag_system_prompt_template},
@@ -125,11 +131,7 @@ def create_collection():
 def get_vectorstore_retriever():
     client = create_collection()
     
-    # Adding cache!
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    cache_dir = os.path.join(current_dir, 'cache')
-    os.makedirs(cache_dir, exist_ok=True)
-
+    # Adding cache!    
     store = LocalFileStore(cache_dir)
     cached_embedder = CacheBackedEmbeddings.from_bytes_store(
         core_embeddings, store, namespace=core_embeddings.model
@@ -210,14 +212,23 @@ def generate_consent_form():
     print(files)
     retriever = get_filtered_retriever(files)
 
+    # Start the retrieval and generation process
     retrieval_augmented_qa_chain = (
-            {"context": itemgetter("question") | retriever, "question": itemgetter("question")}
-            | RunnablePassthrough.assign(context=itemgetter("context"))
-            | chat_prompt | chat_model
-        )
+        {"context": itemgetter("question") | retriever, "question": itemgetter("question")}
+        | RunnablePassthrough.assign(context=itemgetter("context"))
+        | chat_prompt | chat_model
+    )
 
-    for chunk in retrieval_augmented_qa_chain.stream({"question": "generate clinical trials consent documentation"}):
-        return jsonify(chunk)
+    def generate():
+        try:
+            for chunk in retrieval_augmented_qa_chain.stream({"question": "generate clinical trials consent documentation"}):
+                # Extract the content from AIMessageChunk object
+                yield chunk.content
+        except Exception as e:
+            yield json.dumps({"error": str(e)}) + "\n"
+
+    return Response(stream_with_context(generate()), content_type='application/json')
+
 
 @app.route('/revise', methods=['POST'])
 def revise():
