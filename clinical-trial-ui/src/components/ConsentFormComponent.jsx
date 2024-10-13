@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { parse } from 'best-effort-json-parser';
+import { jsPDF } from 'jspdf';
 import './ConsentFormComponent.css';
 import './animations.css';
 
@@ -148,7 +149,7 @@ function ConsentFormComponent({
 
         // Update the text area with the streamed content
         try {
-          const newData = parseJson(buffer);
+          const newData = parse(buffer);
           if (newData && newData[activeField]) {
             setData((prevData) => ({
               ...prevData,
@@ -207,6 +208,41 @@ function ConsentFormComponent({
       ...prevState,
       [sectionKey]: !prevState[sectionKey],
     }));
+  };
+
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('Consent Form', 10, 10);
+    doc.setFontSize(12);
+    
+    let y = 20; // Vertical position on the PDF
+
+    sections.forEach((section) => {
+      doc.setFont('helvetica', 'bold');
+      doc.text(section.title, 10, y);
+      y += 10;
+
+      section.fields.forEach((field) => {
+        if (data[field.key]) {
+          doc.setFont('helvetica', 'normal');
+          doc.text(`${field.label}:`, 10, y);
+          y += 7;
+          doc.text(data[field.key], 15, y);
+          y += 10;
+
+          // Add page if nearing bottom of page
+          if (y > 270) {
+            doc.addPage();
+            y = 10;
+          }
+        }
+      });
+
+      y += 5; // Space between sections
+    });
+
+    doc.save('consent_form.pdf');
   };
 
   const hasData = Object.values(data).some((value) => value !== '');
@@ -278,7 +314,7 @@ function ConsentFormComponent({
       )}
       {hasData && !loading && (
         <div className="actions">
-          <button onClick={() => console.log('Download PDF')}>Download PDF</button>
+          <button onClick={handleDownloadPDF}>Download PDF</button>
           <button onClick={() => window.location.reload()}>Restart</button>
         </div>
       )}
