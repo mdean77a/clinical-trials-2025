@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { parse } from 'best-effort-json-parser';
+import { jsPDF } from 'jspdf';
 import './ConsentFormComponent.css';
 import './animations.css';
 
@@ -33,70 +35,70 @@ function ConsentFormComponent({
     'Part 1: Master Consent': false,
     'Part 2: Site Specific Information': false,
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  // Fetch consent form data from the backend
+  // Use a ref to track if the consent form has already been generated
+  const isGeneratedRef = useRef(false);
+
+  // Fetch consent form data from the backend and handle streaming
   useEffect(() => {
     const generateConsentForm = async () => {
+      // Avoid calling the endpoint if already generated or if no files are selected
+      if (isGeneratedRef.current || !selectedFiles.length) {
+        return;
+      }
+      isGeneratedRef.current = true; // Mark as generated
+
       try {
+        setLoading(true);
+        
+        // Start listening to the streaming data from the "generate-consent-form" endpoint
         const response = await fetch('http://localhost:5000/generate-consent-form', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ files: selectedFiles }),
         });
 
-        // Assuming the response sends back an acknowledgement
-        const ack = await response.json();
-        if (ack.status !== 'accepted') {
-          console.error('Consent form generation not accepted by backend.');
-          return;
-        }
-
-        // Start listening to the streaming data
-        const streamResponse = await fetch('http://localhost:5000/consent-form-stream');
-        if (!streamResponse.body) {
+        if (!response.body) {
           console.error('ReadableStream not supported in this browser.');
+          setLoading(false);
           return;
         }
 
-        const reader = streamResponse.body.getReader();
+        const reader = response.body.getReader();
+        setLoading(false);
         const decoder = new TextDecoder('utf-8');
-        let buffer = '';
+        let partialResponse = '';
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
-          buffer += decoder.decode(value, { stream: true });
+          partialResponse += decoder.decode(value, { stream: true });
 
-          // Process the buffer to extract JSON objects
-          let parsed = false;
-          while (!parsed) {
-            try {
-              const jsonStr = buffer.trim();
-              if (jsonStr.endsWith('}')) {
-                const parsedData = JSON.parse(jsonStr);
-                setData((prevData) => ({
-                  ...prevData,
-                  ...parsedData,
-                }));
-                onTextAreaDataUpdate((prevData) => ({
-                  ...prevData,
-                  ...parsedData,
-                }));
-                buffer = '';
-              }
-              parsed = true;
-            } catch (e) {
-              // Incomplete JSON; wait for more data
-              parsed = true;
+          // Attempt to parse JSON from buffer using best-effort-json-parser
+          try {
+            // const jsonStr = partialResponse.trim();
+            const parsedData = parse(partialResponse);
+            console.log("JsonMessage: ", JSON.stringify(parsedData));
+            if (parsedData) {
+              setData((prevData) => ({
+                ...prevData,
+                ...parsedData,
+              }));
+              onTextAreaDataUpdate((prevData) => ({
+                ...prevData,
+                ...parsedData,
+              }));
             }
+          } catch (e) {
+            // Continue collecting data until we get complete JSON fragments
+            continue;
           }
-
-          setLoading(false);
         }
       } catch (error) {
         console.error('Error generating consent form:', error);
+        setLoading(false);
       }
     };
 
@@ -129,23 +131,13 @@ function ConsentFormComponent({
         }),
       });
 
-      // Assuming the response sends back an acknowledgement
-      const ack = await response.json();
-      if (ack.status !== 'accepted') {
-        console.error('Revise request not accepted by backend.');
-        return;
-      }
-
-      // Start listening to the streaming data
-      const streamResponse = await fetch(
-        `http://localhost:5000/revise-stream?field=${encodeURIComponent(activeField)}`
-      );
-      if (!streamResponse.body) {
+      // Start listening to the streaming data for the revised field
+      if (!response.body) {
         console.error('ReadableStream not supported in this browser.');
         return;
       }
 
-      const reader = streamResponse.body.getReader();
+      const reader = response.body.getReader();
       const decoder = new TextDecoder('utf-8');
       let buffer = '';
 
@@ -156,9 +148,23 @@ function ConsentFormComponent({
         buffer += decoder.decode(value, { stream: true });
 
         // Update the text area with the streamed content
-        const newData = { ...data, [activeField]: buffer };
-        setData(newData);
-        onTextAreaDataUpdate(newData);
+        try {
+          const newData = parse(buffer);
+          if (newData && newData[activeField]) {
+            setData((prevData) => ({
+              ...prevData,
+              [activeField]: newData[activeField],
+            }));
+            onTextAreaDataUpdate((prevData) => ({
+              ...prevData,
+              [activeField]: newData[activeField],
+            }));
+            buffer = '';
+          }
+        } catch (e) {
+          // Continue if the JSON is incomplete
+          continue;
+        }
       }
 
       setAiAssistantInput('');
@@ -204,10 +210,48 @@ function ConsentFormComponent({
     }));
   };
 
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('Consent Form', 10, 10);
+    doc.setFontSize(12);
+    
+    let y = 20; // Vertical position on the PDF
+
+    sections.forEach((section) => {
+      doc.setFont('helvetica', 'bold');
+      doc.text(section.title, 10, y);
+      y += 10;
+
+      section.fields.forEach((field) => {
+        if (data[field.key]) {
+          doc.setFont('helvetica', 'normal');
+          doc.text(`${field.label}:`, 10, y);
+          y += 7;
+          doc.text(data[field.key], 15, y);
+          y += 10;
+
+          // Add page if nearing bottom of page
+          if (y > 270) {
+            doc.addPage();
+            y = 10;
+          }
+        }
+      });
+
+      y += 5; // Space between sections
+    });
+
+    doc.save('consent_form.pdf');
+  };
+
+  const hasData = Object.values(data).some((value) => value !== '');
+
   return (
     <div className="consent-form-component">
-      {loading && <div className="loading-spinner">Loading...</div>}
-      {!loading && (
+      {loading ? (
+        <div className="loading-spinner">Loading...</div>
+      ) : (
         <div className="text-area-component">
           {sections.map((section, sIndex) => (
             <div key={sIndex} className="consent-section">
@@ -266,6 +310,12 @@ function ConsentFormComponent({
               )}
             </div>
           ))}
+        </div>
+      )}
+      {hasData && !loading && (
+        <div className="actions">
+          <button onClick={handleDownloadPDF}>Download PDF</button>
+          <button onClick={() => window.location.reload()}>Restart</button>
         </div>
       )}
     </div>

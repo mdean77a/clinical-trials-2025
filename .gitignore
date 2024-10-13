@@ -7,3 +7,5 @@
 .vscode/launch.json
 **/__pycache__/
 .DS_Store
+**/cache/*
+qdrant_storage/

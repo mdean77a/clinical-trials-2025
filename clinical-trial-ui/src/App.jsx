@@ -11,6 +11,7 @@ function App() {
   const [formOption, setFormOption] = useState('');
   const [textAreaData, setTextAreaData] = useState({});
   const [showConsentForm, setShowConsentForm] = useState(false);
+  const [showDownloadPDF, setShowDownloadPDF] = useState(false);
 
   const handleFilesSelected = (files) => {
     setSelectedFiles(files);
@@ -40,22 +41,28 @@ function App() {
   return (
     <div className="App">
        <TransitionGroup>
-      {!showConsentForm ? (
+      {!showConsentForm && !showDownloadPDF ? (
         <HomeComponent
           onFilesSelected={handleFilesSelected}
           onFormOptionSelected={handleFormOptionSelected}
         />
-      ) : (
+      ) : showConsentForm && !showDownloadPDF ? (
         <>
           <ConsentFormComponent
             selectedFiles={selectedFiles}
             textAreaData={textAreaData}
             onTextAreaDataUpdate={handleTextAreaDataUpdate}
           />
-          <DownloadPDFComponent textAreaData={textAreaData} />
-          <button onClick={handleRestart}>Restart</button>
+
         </>
-      )}
+      )
+      : showDownloadPDF ? (
+        <>
+        <DownloadPDFComponent textAreaData={textAreaData} />
+        <button onClick={handleRestart}>Restart</button>
+        </>
+      ) : null
+      }
       </TransitionGroup>
     </div>
   );
