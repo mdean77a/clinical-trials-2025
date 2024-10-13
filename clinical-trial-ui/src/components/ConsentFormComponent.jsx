@@ -67,18 +67,19 @@ function ConsentFormComponent({
         const reader = response.body.getReader();
         setLoading(false);
         const decoder = new TextDecoder('utf-8');
-        let buffer = '';
+        let partialResponse = '';
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
-          buffer += decoder.decode(value, { stream: true });
+          partialResponse += decoder.decode(value, { stream: true });
 
           // Attempt to parse JSON from buffer using best-effort-json-parser
           try {
-            const jsonStr = buffer.trim();
-            const parsedData = parse(jsonStr);
+            // const jsonStr = partialResponse.trim();
+            const parsedData = parse(partialResponse);
+            console.log("JsonMessage: ", JSON.stringify(parsedData));
             if (parsedData) {
               setData((prevData) => ({
                 ...prevData,
@@ -88,7 +89,6 @@ function ConsentFormComponent({
                 ...prevData,
                 ...parsedData,
               }));
-              buffer = '';
             }
           } catch (e) {
             // Continue collecting data until we get complete JSON fragments
