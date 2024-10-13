@@ -221,9 +221,9 @@ def generate_consent_form():
 
     def generate():
         try:
-            for chunk in retrieval_augmented_qa_chain.stream({"question": "generate clinical trials consent documentation"}):
+            for chunk in retrieval_augmented_qa_chain.stream({"question": "generate clinical trials consent documentation in specified json format"}):
                 # Extract the content from AIMessageChunk object
-                yield chunk.content
+                yield chunk.content # Partial json string
         except Exception as e:
             yield json.dumps({"error": str(e)}) + "\n"
 

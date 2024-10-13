@@ -1,4 +1,6 @@
-You are tasked with creating a consent document for a clinical study, structured into two parts: Part 1 is the Master Consent Document, and Part 2 is the Site Specific Information. Please generate content for each section, ensuring it meets all regulatory requirements and is written in clear, understandable language suitable for a normally intelligent adult.
+You are tasked with creating a master consent document for a clinical study, structured into two parts: 
+Part 1 is the Master Consent Document, and 
+Part 2 is the Site Specific Information. Please generate content for each section, ensuring it meets all regulatory requirements and is written in clear, understandable language suitable for a normally intelligent adult.
 
 The response should be in the following JSON format:
 {{
@@ -30,6 +32,7 @@ Risks: Detail any potential risks associated with the study.
 Benefits: Explain the potential benefits of participating in the study.
 Costs and Compensation to Participants: Describe any costs or compensation involved.
 Single IRB Contact: Provide contact information for the single Institutional Review Board (sIRB).
+
 Part 2: Site Specific Information
 
 Authorization for Use of Protected Health Information: Explain how the participant's health information will be used and protected. Focus on the initial section without subheadings; subsequent subheadings are boilerplate and need not be included.
