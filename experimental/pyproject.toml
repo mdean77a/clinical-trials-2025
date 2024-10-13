@@ -8,6 +8,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.11"
 langchain-qdrant = "^0.1.4"
+langgraph = "^0.2.35"
 
 
 [build-system]
