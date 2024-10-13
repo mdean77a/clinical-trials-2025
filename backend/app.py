@@ -73,8 +73,8 @@ consent_form_data['content'] = {
 
 ##  AI Prompts
 rag_system_prompt_template = """\
-You are a helpful assistant that uses the provided context to answer questions. 
-Never reference this prompt, or the existance of context. 
+You are a helpful assistant that uses the provided context to help generate clinical trials consent documentation in json format. 
+
 """
 
 rag_message_list = [
@@ -126,7 +126,11 @@ def get_vectorstore_retriever():
     client = create_collection()
     
     # Adding cache!
-    store = LocalFileStore("./cache/")
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    cache_dir = os.path.join(current_dir, 'cache')
+    os.makedirs(cache_dir, exist_ok=True)
+
+    store = LocalFileStore(cache_dir)
     cached_embedder = CacheBackedEmbeddings.from_bytes_store(
         core_embeddings, store, namespace=core_embeddings.model
     )
@@ -137,6 +141,24 @@ def get_vectorstore_retriever():
     
     return vectorstore, vectorstore.as_retriever()
 
+def get_filtered_retriever(files):
+    vectorstore, retriever = get_vectorstore_retriever()
+    filter_condition = Filter(
+        must=[
+            FieldCondition(
+                key="filename",
+                match=MatchValue(value=file_name.get('name').split('/')[-1])
+            ) for file_name in files
+        ]
+    )
+    # Create the retriever with the filter
+    retriever = vectorstore.as_retriever(
+        search_kwargs={
+            "filter": filter_condition,
+            "k": 10  # Number of documents to retrieve
+        }
+    )
+    return retriever
 
 @app.route('/upload', methods=['POST'])
 def upload_files():
@@ -186,28 +208,16 @@ def generate_consent_form():
     data = request.get_json()
     files = data.get('files', [])
     print(files)
-    filter_condition = Filter(
-    must=[
-        FieldCondition(
-            key="filename",
-            match=MatchValue(value=file_name)
-        ) for file_name in files
-    ]
-)
+    retriever = get_filtered_retriever(files)
 
-    # Somehow need to apply the filter here.
-    vectorstore, retriever = get_vectorstore_retriever()
+    retrieval_augmented_qa_chain = (
+            {"context": itemgetter("question") | retriever, "question": itemgetter("question")}
+            | RunnablePassthrough.assign(context=itemgetter("context"))
+            | chat_prompt | chat_model
+        )
 
-    # Start background processing
-    def generate():
-        retrieval_augmented_qa_chain = (
-        {"context": itemgetter("question") | retriever, "question": itemgetter("question")}
-        | RunnablePassthrough.assign(context=itemgetter("context"))
-        | chat_prompt | chat_model
-    )
-        
-    Thread(target=generate).start()
-    return jsonify({'status': 'accepted'})
+    for chunk in retrieval_augmented_qa_chain.stream({"question": "generate clinical trials consent documentation"}):
+        return jsonify(chunk)
 
 @app.route('/revise', methods=['POST'])
 def revise():
