@@ -9,3 +9,4 @@
 .DS_Store
 **/cache/*
 qdrant_storage/
+*ICF.md 
