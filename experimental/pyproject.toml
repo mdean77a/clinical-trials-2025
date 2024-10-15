@@ -9,6 +9,7 @@ readme = "README.md"
 python = "^3.11"
 langchain-qdrant = "^0.1.4"
 langgraph = "^0.2.35"
+langchain-community = "^0.3.2"
 
 
 [build-system]
