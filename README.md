@@ -37,7 +37,9 @@ the components written in parallel, as shown in this workflow:
 <div align="center">
     <table>
     <tr>
-      <td><img src="agents.png" alt="Agents" width="300" /></td>
+      <td><img src="agents.png" alt="Agents" width="100%" /></td>
     </tr>
   </table>
 </div>
+
+Using this parallel workflow, a complete ICF draft that required two week of coordinator effor is produced in 15 seconds by our application.
