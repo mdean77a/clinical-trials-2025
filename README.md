@@ -9,3 +9,11 @@ Research coordinators are often untrained in clinical medicine, and protocols ar
 investigators and funding agencies, however, are often frustrated by perceptions that the coordinating center is too slow
 in starting their project:
 
+<div align="center">
+  <table>
+    <tr>
+      <td><img src="CoordinatorProtocol.png" alt="Coordinator" width="300" /></td>
+      <td><img src="TooSLOW.png" alt="Investigator" width="300" /></td>
+    </tr>
+  </table>
+</div>
