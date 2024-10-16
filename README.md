@@ -17,3 +17,17 @@ in starting their project:
     </tr>
   </table>
 </div>
+
+## Demo Project Problem Statement
+
+Human research protection programs (HRPP) require multiple steps to be accomplished before a clinical trial can begin, in order
+to assure that human research subjects are protected from inappropriate risks (compared to potential benefits) of participating
+in the trial.  One of the important steps that must be accomplished by the coordinator is to read and interpret the complex
+protocol, and write an understandable informed consent form (ICF).  This must be accomplished before the other HRPP requirements
+can be met.  Converting a 75 page protocol into a 15 page ICF is complicated by regulatory requirements for multiple components
+of the ICF.  Developing the initial draft of an ICF usually requires 2 to 3 weeks effort from the coordinator, followed by 
+review and corrections by the investigator, with a total process that may require another month (or more).
+
+## Demo Project Solution
+
+The Clinical Trial Accelerator utilizes large language models 
