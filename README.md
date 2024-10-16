@@ -1,5 +1,6 @@
 # Clinical Trial Accelerator
-
+#### J. Michael Dean and Jeeva Poongavanam
+---
 Clinical trials are complex and time-consuming to implement.  Academic researchers must develop comprehensive grant proposals,
 send them to a funding agency such as the National Institutes of Health (NIH), undergo a review process that may take up to two 
 years, and then are expected to implement their study almost immediately after funding is provided.  For industry funded research,
