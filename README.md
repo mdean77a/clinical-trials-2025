@@ -30,4 +30,14 @@ review and corrections by the investigator, with a total process that may requir
 
 ## Demo Project Solution
 
-The Clinical Trial Accelerator utilizes large language models 
+The Clinical Trial Accelerator allows the coordinator to upload the protocol document, embeds the protocol and creates a Qdrant 
+vectorstore, and then utilizes large language models to write each component of the ICF.  Using LangGraph allows us to have
+the components written in parallel, as shown in this workflow:
+
+<div align="center">
+    <table>
+    <tr>
+      <td><img src="agents.png" alt="Agents" width="300" /></td>
+    </tr>
+  </table>
+</div>
