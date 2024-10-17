@@ -46,7 +46,7 @@ function ConsentFormComponent({
         setLoading(true);
         
         // Start listening to the streaming data from the "generate-consent-form" endpoint
-        const response = await fetch('http://localhost:5000/generate-consent-form', {
+        const response = await fetch('http://localhost:8000/generate-consent-form', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ files: selectedFiles }),
@@ -114,7 +114,7 @@ function ConsentFormComponent({
   const handleAiAssistantSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:5000/revise', {
+      const response = await fetch('http://localhost:8000/revise', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -193,7 +193,7 @@ function ConsentFormComponent({
 
   const handleDownloadPDF = async () => {
     try {
-      const response = await fetch('http://localhost:5000/download-consent-pdf', {
+      const response = await fetch('http://localhost:8000/download-consent-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ data }),

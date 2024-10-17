@@ -21,6 +21,9 @@ langchain = "^0.3.3"
 langchain-community = "^0.3.2"
 pymupdf = "^1.24.11"
 langgraph = "^0.2.38"
+reportlab = "^4.2.5"
+markdown2 = "^2.5.1"
+python-multipart = "^0.0.12"
 
 
 [tool.poetry.group.dev.dependencies]

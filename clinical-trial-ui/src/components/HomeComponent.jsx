@@ -21,7 +21,7 @@ function HomeComponent({ onFilesSelected, onFormOptionSelected }) {
 
   const fetchExistingFiles = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/existing-files');
+      const response = await axios.get('http://localhost:8000/existing-files');
       setExistingFiles(response.data.files);
     } catch (error) {
       console.error('Error fetching existing files:', error);
@@ -40,13 +40,13 @@ function HomeComponent({ onFilesSelected, onFormOptionSelected }) {
 
     const formData = new FormData();
     files.forEach((file) => {
-      formData.append('pdf_files', file);
+      formData.append('files', file);
     });
 
     setIsProcessing(true);
 
     try {
-      await axios.post('http://localhost:5000/upload', formData);
+      await axios.post('http://localhost:8000/upload', formData);
       alert('Files uploaded successfully. Please select "Use Existing Files" to proceed.');
       setOption(''); // Reset option to allow user to select again
     } catch (error) {

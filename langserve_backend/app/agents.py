@@ -1,15 +1,16 @@
-from typing import TypedDict, Annotated
+from typing import TypedDict, Annotated, Dict, Any
 import json
+import asyncio
 from langgraph.graph.message import add_messages
 from langgraph.graph import StateGraph, START, END
 
-from queries import summary_query
-from queries import background_query
-from queries import number_of_participants_query
-from queries import study_procedures_query
-from queries import alt_procedures_query
-from queries import risks_query
-from queries import benefits_query
+from .queries import summary_query
+from .queries import background_query
+from .queries import number_of_participants_query
+from .queries import study_procedures_query
+from .queries import alt_procedures_query
+from .queries import risks_query
+from .queries import benefits_query
 
 from .rag_builder import RagBuilder
 
@@ -60,56 +61,52 @@ class ClinicalTrialAgent:
 
         return uncompiled_graph.compile()
 
-    async def summary_node(self, state):
+    async def summary_node(self, state: Dict[str, Any]) -> Dict[str, Any]:
         summary = self.rag_chain.invoke({"question": summary_query()})
         state["summary"] = summary
         return state
 
-    async def background_node(self, state):
+    async def background_node(self, state: Dict[str, Any]) -> Dict[str, Any]:
         background = self.rag_chain.invoke({"question": background_query()})
         state["background"] = background
         return state
 
-    async def number_of_participants_node(self, state):
+    async def number_of_participants_node(self, state: Dict[str, Any]) -> Dict[str, Any]:
         number_of_participants = self.rag_chain.invoke({"question": number_of_participants_query()})
         state["number_of_participants"] = number_of_participants
         return state
 
-    async def study_procedures_node(self, state):
+    async def study_procedures_node(self, state: Dict[str, Any]) -> Dict[str, Any]:
         study_procedures = self.rag_chain.invoke({"question": study_procedures_query()})
         state["study_procedures"] = study_procedures
         return state
 
-    async def alt_procedures_node(self, state):
+    async def alt_procedures_node(self, state: Dict[str, Any]) -> Dict[str, Any]:
         alt_procedures = self.rag_chain.invoke({"question": alt_procedures_query()})
         state["alt_procedures"] = alt_procedures
         return state
 
-    async def risks_node(self, state):
+    async def risks_node(self, state: Dict[str, Any]) -> Dict[str, Any]:
         risks = self.rag_chain.invoke({"question": risks_query()})
         state["risks"] = risks
         return state
 
-    async def benefits_node(self, state):
+    async def benefits_node(self, state: Dict[str, Any]) -> Dict[str, Any]:
         benefits = self.rag_chain.invoke({"question": benefits_query()})
         state["benefits"] = benefits
         return state
 
-    async def run(self, stream_callback):
+    async def run(self):
         initial_state = {}
-        async for state_update in self.compiled_graph.stream(initial_state):
-            # Stream each update as it's produced
-            await stream_callback("StateUpdate", json.dumps(state_update, indent=2))
-
-        # Stream the final JSON object
-        await stream_callback("FinalState", json.dumps(initial_state, indent=2))
-        return initial_state
-
-# Example callback function to handle streaming results
-async def stream_callback(node_name, content):
-    print(f"Streaming from {node_name}: {content}")
+        state_stream = self.compiled_graph.stream(initial_state)
+        try:
+            async for state_update in state_stream.__aiter__():
+                yield json.dumps(state_update, indent=2)
+        finally:
+            await state_stream.aclose()
 
 # Example usage
 # rag_builder = RagBuilder()  # Assuming RagBuilder is already defined
 # agent = ClinicalTrialAgent(rag_builder)
-# asyncio.run(agent.run(stream_callback))
+# async for state in agent.run():
+#     print(state)
