@@ -10,7 +10,6 @@ function ConsentFormComponent({
   onTextAreaDataUpdate,
 }) {
   const initialData = {
-    // Part 1: Master Consent
     summary: '',
     background: '',
     numberOfParticipants: '',

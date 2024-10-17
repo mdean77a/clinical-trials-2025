@@ -92,22 +92,17 @@ async def get_existing_files():
 
 @app.post("/generate-consent-form")
 async def generate_consent_form(request: Request):
-    data = await request.json()
-    files = data.get('files', [])
-    print(files)
+    request_data = await request.json()
+    files = request_data.get("files", [])
+    file_names = [f["name"] for f in files if f.get("name")]
+        
+    agent = ClinicalTrialAgent(rag_builder, file_names)
 
-    # Initialize your agent
-    agent = ClinicalTrialAgent(rag_builder)
-
-    # Create the event stream function
     async def event_stream():
         async for state_update in agent.run():
-            # Streaming each JSON update as expected by the frontend
-            yield f"data: {state_update}\n\n"
+            yield f"data: {json.dumps(state_update)}\n\n"
 
-    # Use StreamingResponse to stream the data back to the frontend
     return StreamingResponse(event_stream(), media_type="text/event-stream")
-
 
 
 @app.post("/revise")

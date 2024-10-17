@@ -17,15 +17,15 @@ class RagBuilder:
         self.rag_prompt = ChatPromptTemplate.from_template(rag_prompt_template)
         self.rag_chain = self.__build_chain()
 
-    def __build_chain(self, filtered : bool = False):
-        if filtered:
+    def __build_chain(self):
             return (
                 {"context": itemgetter("question") | self.retriever, "question": itemgetter("question")}
                 | self.rag_prompt | self.llm | StrOutputParser()
             )
-        else:
-            return (
-                {"context": itemgetter("question") | self.retriever, "question": itemgetter("question")}
+    
+    def get_rag_with_filters(self, files):
+         retriever = self.retriever_client.get_retriever_with_filter(files)
+         return (
+                {"context": itemgetter("question") | retriever, "question": itemgetter("question")}
                 | self.rag_prompt | self.llm | StrOutputParser()
-            )
-        
+            )        

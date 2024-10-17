@@ -50,7 +50,7 @@ class QdrantRetrieverClient:
     def get_retriever_with_filter(self, document_titles: List[str]) -> VectorStoreRetriever:
         """ Create and return a VectorStoreRetriever with a filter applied. """
         qdrant_vectorstore = self.get_vectorstore()
-        
+        print(f"Filtering by document titles: {document_titles}")
         retriever = qdrant_vectorstore.as_retriever(
             search_kwargs={
                 'filter': Filter(
