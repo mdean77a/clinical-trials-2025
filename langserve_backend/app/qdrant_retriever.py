@@ -13,9 +13,9 @@ from qdrant_client.http.models import (
     MatchValue,
 )
 from .config import Config
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 
-load_dotenv()
+# load_dotenv()
 class QdrantRetrieverClient:
     def __init__(self, collection_name: str = Config.COLLECTION_NAME):
         """ Initialize the Qdrant client and create the collection if it does not exist. """

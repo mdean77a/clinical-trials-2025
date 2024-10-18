@@ -2,6 +2,7 @@ from typing import AsyncGenerator
 from threading import Thread
 import os
 import time
+from dotenv import load_dotenv
 
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
@@ -22,16 +23,17 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
+from app.qdrant_retriever import QdrantRetrieverClient
 
-from .qdrant_retriever import QdrantRetrieverClient
-
-from .config import Config
-from .agents import ClinicalTrialAgent
-from .rag_builder import RagBuilder
-from .filehandler import FileHandler
-from .pdf_loader_chunker import pdf_load_chunk
+from app.config import Config
+from app.agents import ClinicalTrialGraph
+from app.rag_builder import RagBuilder
+from app.filehandler import FileHandler
+from app.pdf_loader_chunker import pdf_load_chunk
+from langchain_core.messages import HumanMessage
 
 app = FastAPI()
+load_dotenv()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -44,10 +46,8 @@ app.add_middleware(
 file_handler = FileHandler()
 qdrant_retriever_client = QdrantRetrieverClient()
 rag_builder = RagBuilder(qdrant_retriever_client)
-clinical_trial_agents = ClinicalTrialAgent(rag_builder)
+clinical_trial_agents = ClinicalTrialGraph(rag_builder)
 
-async def stream_callback(node_name, content):
-    print(f"Streaming from {node_name}: {content}")
 
 @app.get("/")
 async def redirect_root_to_docs():
@@ -88,22 +88,53 @@ async def get_existing_files():
     file_status = file_handler.load_file_status()
     files = [{'name': filename, 'status': status} for filename, status in file_status.items()]
     return JSONResponse({'files': files})
-    
 
 @app.post("/generate-consent-form")
 async def generate_consent_form(request: Request):
     request_data = await request.json()
     files = request_data.get("files", [])
     file_names = [f["name"] for f in files if f.get("name")]
+    print(f"Generating consent form for files: {file_names}")
+    graph = ClinicalTrialGraph(rag_builder, file_names)
+    
+    async def response_generator():
+        combined_output = {
+            "summary": "",
+            "background": "",
+            "number_of_participants": "",
+            "study_procedures": "",
+            "alt_procedures": "",
+            "risks": "",
+            "benefits": ""
+        }
+        try:
+            async for update in graph.astream():
+                print(f"Received update: {json.dumps(update)}")
+                for key, value in update.items():
+                    if isinstance(value, dict):
+                        for sub_key, sub_value in value.items():
+                            combined_output[sub_key] = sub_value[0] if isinstance(sub_value, list) and sub_value else sub_value
+                    else:
+                        combined_output[key] = value[0] if isinstance(value, list) and value else value
+                
+                # Yield the current state of combined_output
+                yield f"data: {json.dumps(combined_output)}\n\n"
+        except Exception as e:
+            print(f"Error in stream: {e}")
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
         
-    agent = ClinicalTrialAgent(rag_builder, file_names)
+        # Yield the final combined output
+        yield f"data: {json.dumps(combined_output)}\n\n"
 
-    async def event_stream():
-        async for state_update in agent.run():
-            yield f"data: {json.dumps(state_update)}\n\n"
-
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
-
+    return StreamingResponse(
+        response_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Content-Type": "text/event-stream"
+        }
+    )
 
 @app.post("/revise")
 async def revise():
@@ -197,6 +228,7 @@ async def download_consent_pdf(request: Request):
 
 if __name__ == "__main__":
     import uvicorn
+
 
 
     uvicorn.run(app, host="0.0.0.0", port=8000)

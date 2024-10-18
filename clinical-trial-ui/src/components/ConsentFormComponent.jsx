@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { parse } from 'best-effort-json-parser';
 import { jsPDF } from 'jspdf';
 import './ConsentFormComponent.css';
 import './animations.css';
@@ -12,9 +11,9 @@ function ConsentFormComponent({
   const initialData = {
     summary: '',
     background: '',
-    numberOfParticipants: '',
-    studyProcedures: '',
-    alternativeProcedures: '',
+    number_of_participants: '',
+    study_procedures: '',
+    alt_procedures: '',
     risks: '',
     benefits: ''
   };
@@ -35,16 +34,14 @@ function ConsentFormComponent({
   // Fetch consent form data from the backend and handle streaming
   useEffect(() => {
     const generateConsentForm = async () => {
-      // Avoid calling the endpoint if already generated or if no files are selected
       if (isGeneratedRef.current || !selectedFiles.length) {
         return;
       }
-      isGeneratedRef.current = true; // Mark as generated
+      isGeneratedRef.current = true;
 
       try {
         setLoading(true);
         
-        // Start listening to the streaming data from the "generate-consent-form" endpoint
         const response = await fetch('http://localhost:8000/generate-consent-form', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -52,44 +49,42 @@ function ConsentFormComponent({
         });
 
         if (!response.body) {
-          console.error('ReadableStream not supported in this browser.');
-          setLoading(false);
-          return;
+          throw new Error('ReadableStream not supported in this browser.');
         }
 
         const reader = response.body.getReader();
-        setLoading(false);
-        const decoder = new TextDecoder('utf-8');
-        let partialResponse = '';
+        const decoder = new TextDecoder();
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
-          partialResponse += decoder.decode(value, { stream: true });
-
-          // Attempt to parse JSON from buffer using best-effort-json-parser
-          try {
-            // const jsonStr = partialResponse.trim();
-            const parsedData = parse(partialResponse);
-            console.log("JsonMessage: ", JSON.stringify(parsedData));
-            if (parsedData) {
-              setData((prevData) => ({
-                ...prevData,
-                ...parsedData,
-              }));
-              onTextAreaDataUpdate((prevData) => ({
-                ...prevData,
-                ...parsedData,
-              }));
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n\n');
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const jsonData = JSON.parse(line.slice(6));
+                console.log("Received update:", jsonData);
+                setData(prevData => ({
+                  ...prevData,
+                  ...jsonData
+                }));
+                onTextAreaDataUpdate(prevData => ({
+                  ...prevData,
+                  ...jsonData
+                }));
+              } catch (e) {
+                console.error('Error parsing JSON:', e);
+              }
             }
-          } catch (e) {
-            // Continue collecting data until we get complete JSON fragments
-            continue;
           }
         }
+
       } catch (error) {
         console.error('Error generating consent form:', error);
+      } finally {
         setLoading(false);
       }
     };
@@ -123,40 +118,16 @@ function ConsentFormComponent({
         }),
       });
 
-      // Start listening to the streaming data for the revised field
-      if (!response.body) {
-        console.error('ReadableStream not supported in this browser.');
-        return;
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder('utf-8');
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-
-        // Update the text area with the streamed content
-        try {
-          const newData = parse(buffer);
-          if (newData && newData[activeField]) {
-            setData((prevData) => ({
-              ...prevData,
-              [activeField]: newData[activeField],
-            }));
-            onTextAreaDataUpdate((prevData) => ({
-              ...prevData,
-              [activeField]: newData[activeField],
-            }));
-            buffer = '';
-          }
-        } catch (e) {
-          // Continue if the JSON is incomplete
-          continue;
-        }
+      const result = await response.json();
+      if (result && result[activeField]) {
+        setData((prevData) => ({
+          ...prevData,
+          [activeField]: result[activeField],
+        }));
+        onTextAreaDataUpdate((prevData) => ({
+          ...prevData,
+          [activeField]: result[activeField],
+        }));
       }
 
       setAiAssistantInput('');
@@ -174,9 +145,9 @@ function ConsentFormComponent({
       fields: [
         { key: 'summary', label: 'Summary' },
         { key: 'background', label: 'Background' },
-        { key: 'numberOfParticipants', label: 'Number of Participants' },
-        { key: 'studyProcedures', label: 'Study Procedures' },
-        { key: 'alternativeProcedures', label: 'Alternative Procedures' },
+        { key: 'number_of_participants', label: 'Number of Participants' },
+        { key: 'study_procedures', label: 'Study Procedures' },
+        { key: 'alt_procedures', label: 'Alternative Procedures' },
         { key: 'risks', label: 'Risks' },
         { key: 'benefits', label: 'Benefits' }
       ],
@@ -215,7 +186,6 @@ function ConsentFormComponent({
     }
   };
   
-
   const hasData = Object.values(data).some((value) => value !== '');
 
   return (
