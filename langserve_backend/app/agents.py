@@ -1,7 +1,9 @@
-from typing import TypedDict, Annotated, Dict, Any, Optional
+from typing import TypedDict, Annotated, Dict, Any, Optional, AsyncGenerator
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import MessageGraph, add_messages
 from langchain_core.runnables import RunnableConfig
+from langchain.callbacks import AsyncIteratorCallbackHandler
+import asyncio
 
 from .queries import (
     summary_query,
@@ -53,33 +55,45 @@ class ClinicalTrialGraph:
 
         return workflow.compile()
 
-    async def summary_node(self, state: AgentState) -> Dict:
-        result = await self.rag_chain.ainvoke({"question": summary_query()})
-        return {"summary": [result]}
+    async def streaming_node(self, state: AgentState, field: str, query: str) -> AsyncGenerator[Dict, None]:
+        callback = AsyncIteratorCallbackHandler()
+        runnable = self.rag_chain.with_config(callbacks=[callback])
+        task = asyncio.create_task(runnable.ainvoke({"question": query()}))
+        
+        current_content = ""
+        async for token in callback.aiter():
+            current_content += token
+            yield {field: [current_content]}
+        
+        await task
 
-    async def background_node(self, state: AgentState) -> Dict:
-        result = await self.rag_chain.ainvoke({"question": background_query()})
-        return {"background": [result]}
+    async def summary_node(self, state: AgentState) -> AsyncGenerator[Dict, None]:
+        async for update in self.streaming_node(state, "summary", summary_query):
+            yield update
 
-    async def number_of_participants_node(self, state: AgentState) -> Dict:
-        result = await self.rag_chain.ainvoke({"question": number_of_participants_query()})
-        return {"number_of_participants": [result]}
+    async def background_node(self, state: AgentState) -> AsyncGenerator[Dict, None]:
+        async for update in self.streaming_node(state, "background", background_query):
+            yield update
 
-    async def study_procedures_node(self, state: AgentState) -> Dict:
-        result = await self.rag_chain.ainvoke({"question": study_procedures_query()})
-        return {"study_procedures": [result]}
+    async def number_of_participants_node(self, state: AgentState) -> AsyncGenerator[Dict, None]:
+        async for update in self.streaming_node(state, "number_of_participants", number_of_participants_query):
+            yield update
 
-    async def alt_procedures_node(self, state: AgentState) -> Dict:
-        result = await self.rag_chain.ainvoke({"question": alt_procedures_query()})
-        return {"alt_procedures": [result]}
+    async def study_procedures_node(self, state: AgentState) -> AsyncGenerator[Dict, None]:
+        async for update in self.streaming_node(state, "study_procedures", study_procedures_query):
+            yield update
 
-    async def risks_node(self, state: AgentState) -> Dict:
-        result = await self.rag_chain.ainvoke({"question": risks_query()})
-        return {"risks": [result]}
+    async def alt_procedures_node(self, state: AgentState) -> AsyncGenerator[Dict, None]:
+        async for update in self.streaming_node(state, "alt_procedures", alt_procedures_query):
+            yield update
 
-    async def benefits_node(self, state: AgentState) -> Dict:
-        result = await self.rag_chain.ainvoke({"question": benefits_query()})
-        return {"benefits": [result]}
+    async def risks_node(self, state: AgentState) -> AsyncGenerator[Dict, None]:
+        async for update in self.streaming_node(state, "risks", risks_query):
+            yield update
+
+    async def benefits_node(self, state: AgentState) -> AsyncGenerator[Dict, None]:
+        async for update in self.streaming_node(state, "benefits", benefits_query):
+            yield update
 
     async def arun(self, config: Optional[RunnableConfig] = None) -> Dict[str, str]:
         final_state = await self.compiled_graph.arun({}, config)
