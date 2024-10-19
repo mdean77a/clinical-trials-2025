@@ -27,6 +27,7 @@ function ConsentFormComponent({
     'Part 2: Site Specific Information': false,
   });
   const [loading, setLoading] = useState(false);
+  const [streamStarted, setStreamStarted] = useState(false);
 
   // Use a ref to track if the consent form has already been generated
   const isGeneratedRef = useRef(false);
@@ -75,6 +76,10 @@ function ConsentFormComponent({
                   ...prevData,
                   ...jsonData
                 }));
+                if (!streamStarted) {
+                  setStreamStarted(true);
+                  setLoading(false);
+                }
               } catch (e) {
                 console.error('Error parsing JSON:', e);
               }
@@ -86,6 +91,7 @@ function ConsentFormComponent({
         console.error('Error generating consent form:', error);
       } finally {
         setLoading(false);
+        setStreamStarted(false);
       }
     };
 
@@ -190,7 +196,7 @@ function ConsentFormComponent({
 
   return (
     <div className="consent-form-component">
-      {loading ? (
+      {loading && !streamStarted ? (
         <div className="loading-spinner">Loading...</div>
       ) : (
         <div className="text-area-component">
