@@ -68,14 +68,26 @@ function ConsentFormComponent({
               try {
                 const jsonData = JSON.parse(line.slice(6));
                 console.log("Received update:", jsonData);
-                setData(prevData => ({
-                  ...prevData,
-                  ...jsonData
-                }));
-                onTextAreaDataUpdate(prevData => ({
-                  ...prevData,
-                  ...jsonData
-                }));
+                setData(prevData => {
+                  const newData = { ...prevData };
+                  for (const [key, value] of Object.entries(jsonData)) {
+                    if (Array.isArray(value) && value.length > 0) {
+                      newData[key] = value[0];  // Use the first (and only) element of the array
+                    } else if (value !== undefined && value !== null) {
+                      newData[key] = value;
+                    }
+                  }
+                  return newData;
+                });
+                onTextAreaDataUpdate(prevData => {
+                  const newData = { ...prevData };
+                  for (const [key, value] of Object.entries(jsonData)) {
+                    if (value !== undefined && value !== null) {
+                      newData[key] = value;
+                    }
+                  }
+                  return newData;
+                });
                 if (!streamStarted) {
                   setStreamStarted(true);
                   setLoading(false);

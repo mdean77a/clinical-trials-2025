@@ -109,7 +109,7 @@ async def generate_consent_form(request: Request):
         }
         try:
             async for update in graph.astream():
-                print(f"Received update: {json.dumps(update)}")
+                # print(f"Received update: {json.dumps(update)}")
                 for key, value in update.items():
                     if isinstance(value, dict):
                         for sub_key, sub_value in value.items():
@@ -120,7 +120,6 @@ async def generate_consent_form(request: Request):
                 # Yield the current state of combined_output
                 yield f"data: {json.dumps(combined_output)}\n\n"
         except Exception as e:
-            print(f"Error in stream: {e}")
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
         
         # Yield the final combined output

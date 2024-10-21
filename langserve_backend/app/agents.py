@@ -4,6 +4,7 @@ from langgraph.graph.message import MessageGraph, add_messages
 from langchain_core.runnables import RunnableConfig
 from langchain.callbacks import AsyncIteratorCallbackHandler
 import asyncio
+import logging 
 
 from .queries import (
     summary_query,
@@ -17,6 +18,9 @@ from .queries import (
 
 from .rag_builder import RagBuilder
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 class AgentState(TypedDict):
     messages: Annotated[list, add_messages]
     summary: Annotated[str, add_messages]
@@ -29,29 +33,32 @@ class AgentState(TypedDict):
 
 class ClinicalTrialGraph:
     def __init__(self, rag_builder: RagBuilder, files: list[str] = []):
+        logger.warning(f"Creating ClinicalTrialGraph with files: {files}")
         self.rag_chain = rag_builder.rag_chain if len(files) == 0 else rag_builder.get_rag_with_filters(files)
         self.compiled_graph = self._build_graph()
 
     def _build_graph(self):
         workflow = StateGraph(AgentState)
-        
-        # Define nodes for each section
-        workflow.add_node("Summarizer", self.summary_node)
-        workflow.add_node("Background", self.background_node)
-        workflow.add_node("Numbers", self.number_of_participants_node)
-        workflow.add_node("Procedures", self.study_procedures_node)
-        workflow.add_node("Alternatives", self.alt_procedures_node)
-        workflow.add_node("Risks", self.risks_node)
-        workflow.add_node("Benefits", self.benefits_node)
 
-        # Connect START to all nodes for parallel execution
-        nodes = ["Summarizer", "Background", "Numbers", "Procedures", "Alternatives", "Risks", "Benefits"]
-        for node in nodes:
-            workflow.add_edge(START, node)
-            workflow.add_edge(node, END)
+        # Define nodes for each section
+        nodes = [
+            ("summary_node", "summary"),
+            ("background_node", "background"),
+            ("number_of_participants_node", "number_of_participants"),
+            ("study_procedures_node", "study_procedures"),
+            ("alt_procedures_node", "alt_procedures"),
+            ("risks_node", "risks"),
+            ("benefits_node", "benefits")
+        ]
+        
+        # Add nodes and connect them to START and END
+        for node_name, state_key in nodes:
+            workflow.add_node(node_name, getattr(self, node_name))
+            workflow.add_edge(START, node_name)
+            workflow.add_edge(node_name, END)
 
         # Set the entry point
-        workflow.set_entry_point("Summarizer")
+        workflow.set_entry_point("summary_node")
 
         return workflow.compile()
 
@@ -63,49 +70,39 @@ class ClinicalTrialGraph:
         current_content = ""
         async for token in callback.aiter():
             current_content += token
-            yield {field: [current_content]}
+            # Yield the entire current content for the field, simulating overwriting
+            yield {field: current_content}
         
         await task
 
     async def summary_node(self, state: AgentState) -> AsyncGenerator[Dict, None]:
         async for update in self.streaming_node(state, "summary", summary_query):
-            yield update
+            print(f"Received update: {update}")
+            yield {"summary": [update["summary"]]}
 
     async def background_node(self, state: AgentState) -> AsyncGenerator[Dict, None]:
         async for update in self.streaming_node(state, "background", background_query):
-            yield update
+            yield {"background": [update["background"]]}
 
     async def number_of_participants_node(self, state: AgentState) -> AsyncGenerator[Dict, None]:
         async for update in self.streaming_node(state, "number_of_participants", number_of_participants_query):
-            yield update
+            yield {"number_of_participants": [update["number_of_participants"]]}
 
     async def study_procedures_node(self, state: AgentState) -> AsyncGenerator[Dict, None]:
         async for update in self.streaming_node(state, "study_procedures", study_procedures_query):
-            yield update
+            yield {"study_procedures": [update["study_procedures"]]}
 
     async def alt_procedures_node(self, state: AgentState) -> AsyncGenerator[Dict, None]:
         async for update in self.streaming_node(state, "alt_procedures", alt_procedures_query):
-            yield update
+            yield {"alt_procedures": [update["alt_procedures"]]}
 
     async def risks_node(self, state: AgentState) -> AsyncGenerator[Dict, None]:
         async for update in self.streaming_node(state, "risks", risks_query):
-            yield update
+            yield {"risks": [update["risks"]]}
 
     async def benefits_node(self, state: AgentState) -> AsyncGenerator[Dict, None]:
         async for update in self.streaming_node(state, "benefits", benefits_query):
-            yield update
-
-    async def arun(self, config: Optional[RunnableConfig] = None) -> Dict[str, str]:
-        final_state = await self.compiled_graph.arun({}, config)
-        return {
-            "summary": final_state["summary"][0] if final_state["summary"] else "",
-            "background": final_state["background"][0] if final_state["background"] else "",
-            "number_of_participants": final_state["number_of_participants"][0] if final_state["number_of_participants"] else "",
-            "study_procedures": final_state["study_procedures"][0] if final_state["study_procedures"] else "",
-            "alt_procedures": final_state["alt_procedures"][0] if final_state["alt_procedures"] else "",
-            "risks": final_state["risks"][0] if final_state["risks"] else "",
-            "benefits": final_state["benefits"][0] if final_state["benefits"] else ""
-        }
+            yield {"benefits": [update["benefits"]]}
 
     async def astream(self, config: Optional[RunnableConfig] = None):
         targets = {
@@ -113,7 +110,7 @@ class ClinicalTrialGraph:
             "background": "",
             "number_of_participants": "",
             "study_procedures": "",
-            "alt_procedures": "",
+            "alternatives": "",
             "risks": "",
             "benefits": ""
         }

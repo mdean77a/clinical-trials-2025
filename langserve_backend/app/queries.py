@@ -67,23 +67,13 @@ def number_of_participants_query():
 
 def study_procedures_query():
     study_procedures_query = """ 
-    Please write a detailed summary of all the study procedures that will be carried out in this protocol.  This will
-    be used for the "study procedures" section of the informed consent document that the patient will read when deciding
-    whether to participate in the study, so it is important that all significant procedures be included.  
-    Make sure that everything will be understandable to the reader, who is not trained in medicine.  Do not write
-    the summary as if it is in third person - write it like you are speaking directly to the patient (i.e. use "you" instead 
-    of the "patient", with correct grammar of course.)  Do not include a welcome to the study, or discussion about
-    participation being voluntary, as that information is in a different part of the consent document.  Do not include
-    risks and benefits as these are presented in a different part of the consent document.  Please be detailed, as it is 
-    important that the patient understand each procedure.
-    The length of this summary is usually
-    2000 to 3000 words.
+    Please write a detailed summary of all the study procedures that will be carried out in this protocol based on the provided context. These procedures should be included in the 'Study Procedures' section of the informed consent document that the patient will read when deciding whether to participate in the study. All significant procedures should be included.
 
-    Start the summary with a level 2 Markdown header (##) titled "Study Procedures", and then continue the section with subheadings
-    that will help organize the information for the reader.  Do not go more than two subheadings deep.
-
-    All the details of study procedures should be specific to this protocol.
-
+    Ensure the language is understandable for a non-medical audience.
+    Write the summary as if speaking directly to the patient (use 'you' instead of 'patient').
+    Exclude any discussions on risks, benefits, or voluntariness, as they are covered in separate sections.
+    Be detailed, as it is important that the patient understands each procedure.
+    The summary should begin with a Level 2 Markdown header (##) titled 'Study Procedures' and include subheadings to organize the information effectively. Do not go deeper than two subheadings.
     """
     return study_procedures_query
 
@@ -110,22 +100,11 @@ def alt_procedures_query():
 
 def risks_query():
     risks_query = """ 
-    Please write a detailed summary of the risks of participating in  the study.  This will be used for the
-    "Risks" section of the informed consent document.  It is important that all significant risks of study
-    participation are described in detail. The summary must be easily readable by untrained readers, so provide
-    definitions of technical or medical terms.  Address all the risks by speaking to the patient, not by passively
-    mentioning risks to "the patient".  Especially include risks that are associated with the study interventions such
-    as drugs or devices, or associated with testing that is done as part of the study.  Also include
-    the risks associated with data collection, and also mention "unforeseable risks".
+    Please write a detailed summary of the risks of participating in this study. This summary will be used for the 'Risks' section of the informed consent document. It is important that all significant risks of study participation are described in detail, including risks associated with study interventions such as drugs or devices, testing, and data collection. Additionally, mention any unforeseeable risks.
 
-    The length of this risk summary is usually
-    2000 to 3000 words.
+    Ensure that the language is understandable to someone without a medical background by providing definitions for any technical or medical terms. Speak directly to the patient by using 'you' instead of 'the patient'.
 
-    Start the summary with a level 2 Markdown header (##) titled "Risks", and then continue the section with subheadings
-    that will help organize the information for the reader.  Do not go more than two subheadings deep.
-
-    All the details of study risks should be specific to this protocol.
-
+    The risk summary should be 2000 to 3000 words long, detailed, and specific to this protocol. Begin the summary with a Level 2 Markdown header (##) titled 'Risks'. Use subheadings to organize the information, but do not go more than two subheadings deep. 
     """
     return risks_query
 
