@@ -44,3 +44,9 @@ the components written in parallel, as shown in this workflow:
 </div>
 
 Using this parallel workflow, a complete ICF draft that required two week of coordinator effor is produced in 15 seconds by our application.
+
+## Future Directions
+The three immediate directions for this project are:
+- Create project checklist for DCC staff;  this will form the first draft of the formal project workplan that the DCC team will follow throughout implementation.
+- Create site initiation checklist for all sites; this will be the first draft for the DCC coordinator staff who have to on-board the clinical sites.
+- Create a QA Chatbot for the protocol, allowing DCC staff and site staff to ask questions and receive reasonably reliable information from the protocol.  The primary goal of this chat bot will be to increase the understanding of the protocol by coordinators.
