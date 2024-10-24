@@ -100,13 +100,20 @@ def alt_procedures_query():
 
 def risks_query():
     risks_query = """ 
-    Please write a detailed summary of the risks of participating in this clinical trial. This summary will be used for the 'Risks' section of the informed consent document. It is important that all significant risks associated with study interventions, including any drugs, devices, or procedures, as well as data collection methods, are described in detail. Additionally, mention any potential unforeseeable risks and provide a comprehensive assessment of both short-term and long-term risks.
+    Please write a detailed summary of the possible risks of participating in a clinical trial. This summary will be used for the 'Risks' section of an informed consent document, and should cover common risks associated with clinical research, including risks related to the administration of drugs or devices, side effects, adverse reactions, and any risks from study procedures such as testing, data collection, and blood draws.
 
-    Ensure the language is understandable to someone without a medical or technical background by providing definitions for any specialized terms. Speak directly to the participant or their legal guardian by using 'you' instead of 'the patient' or 'the subject'. Simplify explanations when describing procedures, potential side effects, and uncertainties related to the study.
+    You do not need to rely on specific details from the protocol. Instead, provide a comprehensive, general overview of the potential risks, including:
 
-    The risk summary should be 2000 to 3000 words long, detailed, and specific to the protocol provided. Begin the summary with a Level 2 Markdown header (##) titled 'Risks'. Use subheadings to organize the information, but do not go more than two subheadings deep.
+    Risks related to the study drug, device, or intervention
+    Risks from study procedures like blood draws, imaging, or surgeries
+    Possible allergic reactions or unexpected side effects
+    Risks of data breaches or loss of privacy
+    Any unforeseeable risks or long-term concerns that might arise from participation
+    Make sure the language is simple and accessible for individuals without a medical background, and speak directly to the participant by using 'you' instead of 'the patient'. Define any complex or technical terms.
 
-    Consider including risks related to drug administration, possible adverse reactions, any monitoring or testing procedures, and risks from the use of specific devices or technologies. Additionally, account for risks associated with clinical procedures like blood draws, imaging, or surgery. Be sure to mention any specific risks heightened by the participant’s existing health conditions or vulnerabilities. 
+    The risk summary should be 2000 to 3000 words long, and structured with a Level 2 Markdown header titled 'Risks'. Use subheadings where appropriate, but keep the depth to no more than two levels.
+
+    In this case, focus on potential side effects such as common, rare, and serious adverse reactions, as well as risks associated with the use of investigational drugs or devices, including possible complications and long-term health impacts. 
     """
     return risks_query
 
