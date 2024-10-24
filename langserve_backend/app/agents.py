@@ -22,7 +22,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class AgentState(TypedDict):
-    messages: Annotated[list, add_messages]
     summary: Annotated[str, add_messages]
     background: Annotated[str, add_messages]
     number_of_participants: Annotated[str, add_messages]
@@ -70,6 +69,7 @@ class ClinicalTrialGraph:
         current_content = ""
         async for token in callback.aiter():
             current_content += token
+          
             # Yield the entire current content for the field, simulating overwriting
             yield {field: current_content}
         
@@ -77,11 +77,12 @@ class ClinicalTrialGraph:
 
     async def summary_node(self, state: AgentState) -> AsyncGenerator[Dict, None]:
         async for update in self.streaming_node(state, "summary", summary_query):
-            print(f"Received update: {update}")
             yield {"summary": [update["summary"]]}
 
     async def background_node(self, state: AgentState) -> AsyncGenerator[Dict, None]:
         async for update in self.streaming_node(state, "background", background_query):
+            print(f"Received update: {update}")
+
             yield {"background": [update["background"]]}
 
     async def number_of_participants_node(self, state: AgentState) -> AsyncGenerator[Dict, None]:

@@ -1,0 +1,71 @@
+version: '3.9'
+
+services:
+  qdrant:
+    image: qdrant/qdrant
+    container_name: qdrant
+    volumes:
+      - ./qdrant_storage:/qdrant/storage:z
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    networks:
+      - app-network
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 3
+
+  backend:
+    build:
+      context: ./langserve_backend
+    container_name: langserve_backend
+    ports:
+      - "8000:8000"
+      - "8080:8080"
+    networks:
+      - app-network
+    environment:
+      - OPENAI_API_KEY=to-update
+      - OPENAI_MODEL_NAME=gpt-4o
+      - OPENAI_EMBEDDING_MODEL_NAME=text-embedding-3-small
+      - OPENAI_EMBEDDING_MODEL_DIMENSION=1536
+      - QDRANT_HOST=qdrant
+      - COLLECTION_NAME=clinical-trials
+      - QDRANT_URL=http://qdrant:6333
+      - CHUNK_SIZE=2000
+      - CHUNK_OVERLAP=100
+      - LANGCHAIN_TRACING_V2=true
+      - LANGCHAIN_PROJECT="CLINICAL-TRIALS"
+      - LANGCHAIN_API_KEY=to-update
+      - LANGCHAIN_ENDPOINT=https://api.smith.langchain.com
+      - UPLOAD_FOLDER=uploaded_files
+      - PROCESSED_FOLDER=processed_files
+      - DB_FILE=file_status.json
+      - CACHE_DIR=cache
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    restart: on-failure
+
+  frontend:
+    build:
+      context: ./clinical-trial-ui
+    container_name: clinical-trial-ui
+    ports:
+      - "3000:3000"  # Changed to match the actual port from your logs
+    networks:
+      - app-network
+    environment:
+      - BACKEND_URL=http://localhost:8080
+    depends_on:
+      backend:
+        condition: service_started
+
+networks:
+  app-network:
+    name: app-network
+    driver: bridge

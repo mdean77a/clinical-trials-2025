@@ -36,12 +36,13 @@ app = FastAPI()
 load_dotenv()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173","http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
 )
+
 
 file_handler = FileHandler()
 qdrant_retriever_client = QdrantRetrieverClient()
@@ -52,6 +53,11 @@ clinical_trial_agents = ClinicalTrialGraph(rag_builder)
 @app.get("/")
 async def redirect_root_to_docs():
     return RedirectResponse("/docs")
+
+# Add a health check endpoint
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy"}
 
 @app.post("/upload")
 async def upload_files(files: list[UploadFile] = File(...)):
@@ -116,14 +122,14 @@ async def generate_consent_form(request: Request):
                             combined_output[sub_key] = sub_value[0] if isinstance(sub_value, list) and sub_value else sub_value
                     else:
                         combined_output[key] = value[0] if isinstance(value, list) and value else value
-                
+                # print(f"{json.dumps(combined_output)}")
                 # Yield the current state of combined_output
-                yield f"data: {json.dumps(combined_output)}\n\n"
+                yield json.dumps(combined_output)
         except Exception as e:
-            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+            yield json.dumps({'error': str(e)})
         
         # Yield the final combined output
-        yield f"data: {json.dumps(combined_output)}\n\n"
+        yield json.dumps(combined_output)
 
     return StreamingResponse(
         response_generator(),
@@ -194,9 +200,9 @@ async def download_consent_pdf(request: Request):
 
     add_section("SUMMARY", content.get("summary", ""))
     add_section("BACKGROUND", content.get("background", ""))
-    add_section("NUMBER OF PARTICIPANTS", content.get("numberOfParticipants", ""))
-    add_section("STUDY PROCEDURES", content.get("studyProcedures", ""))
-    add_section("ALTERNATIVE PROCEDURES", content.get("alternativeProcedures", ""))
+    add_section("NUMBER OF PARTICIPANTS", content.get("number_of_participants", ""))
+    add_section("STUDY PROCEDURES", content.get("study_procedures", ""))
+    add_section("ALTERNATIVE PROCEDURES", content.get("alt_procedures", ""))
     add_section("RISKS", content.get("risks", ""))
     add_section("BENEFITS", content.get("benefits", ""))
     add_section("COSTS AND COMPENSATION TO PARTICIPANTS", content.get("costsAndCompensationToParticipants", ""))

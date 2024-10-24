@@ -19,6 +19,7 @@ from .config import Config
 class QdrantRetrieverClient:
     def __init__(self, collection_name: str = Config.COLLECTION_NAME):
         """ Initialize the Qdrant client and create the collection if it does not exist. """
+        print(f"Qdrant Collection Name: {Config.COLLECTION_NAME}")
         self.client = QdrantClient(url=Config.QDRANT_URL)
         self.embebedding_model = OpenAIEmbeddings(model=Config.OPENAI_EMBEDDING_MODEL_NAME)
         self.collection_name = collection_name

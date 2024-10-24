@@ -13,6 +13,8 @@ function HomeComponent({ onFilesSelected, onFormOptionSelected }) {
   const [selectedFormOption, setSelectedFormOption] = useState('');
   const [showFormSelection, setShowFormSelection] = useState(false);
 
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+
   useEffect(() => {
     if (option === 'Use Existing Files') {
       fetchExistingFiles();
@@ -21,7 +23,8 @@ function HomeComponent({ onFilesSelected, onFormOptionSelected }) {
 
   const fetchExistingFiles = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/existing-files');
+      // use backendUrl to in below get request
+      const response = await axios.get(`${BACKEND_URL}/existing-files`);
       setExistingFiles(response.data.files);
     } catch (error) {
       console.error('Error fetching existing files:', error);
@@ -46,7 +49,7 @@ function HomeComponent({ onFilesSelected, onFormOptionSelected }) {
     setIsProcessing(true);
 
     try {
-      await axios.post('http://localhost:8000/upload', formData);
+      await axios.post(`${BACKEND_URL}/upload`, formData);
       alert('Files uploaded successfully. Please select "Use Existing Files" to proceed.');
       setOption(''); // Reset option to allow user to select again
     } catch (error) {

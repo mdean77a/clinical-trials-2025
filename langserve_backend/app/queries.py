@@ -100,11 +100,13 @@ def alt_procedures_query():
 
 def risks_query():
     risks_query = """ 
-    Please write a detailed summary of the risks of participating in this study. This summary will be used for the 'Risks' section of the informed consent document. It is important that all significant risks of study participation are described in detail, including risks associated with study interventions such as drugs or devices, testing, and data collection. Additionally, mention any unforeseeable risks.
+    Please write a detailed summary of the risks of participating in this clinical trial. This summary will be used for the 'Risks' section of the informed consent document. It is important that all significant risks associated with study interventions, including any drugs, devices, or procedures, as well as data collection methods, are described in detail. Additionally, mention any potential unforeseeable risks and provide a comprehensive assessment of both short-term and long-term risks.
 
-    Ensure that the language is understandable to someone without a medical background by providing definitions for any technical or medical terms. Speak directly to the patient by using 'you' instead of 'the patient'.
+    Ensure the language is understandable to someone without a medical or technical background by providing definitions for any specialized terms. Speak directly to the participant or their legal guardian by using 'you' instead of 'the patient' or 'the subject'. Simplify explanations when describing procedures, potential side effects, and uncertainties related to the study.
 
-    The risk summary should be 2000 to 3000 words long, detailed, and specific to this protocol. Begin the summary with a Level 2 Markdown header (##) titled 'Risks'. Use subheadings to organize the information, but do not go more than two subheadings deep. 
+    The risk summary should be 2000 to 3000 words long, detailed, and specific to the protocol provided. Begin the summary with a Level 2 Markdown header (##) titled 'Risks'. Use subheadings to organize the information, but do not go more than two subheadings deep.
+
+    Consider including risks related to drug administration, possible adverse reactions, any monitoring or testing procedures, and risks from the use of specific devices or technologies. Additionally, account for risks associated with clinical procedures like blood draws, imaging, or surgery. Be sure to mention any specific risks heightened by the participant’s existing health conditions or vulnerabilities. 
     """
     return risks_query
 
