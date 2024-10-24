@@ -226,7 +226,7 @@ function ConsentFormComponent({
   const handleDownloadPDF = async () => {
     try {
       const response = await fetch(
-        `${BACKEND_URL}//download-consent-pdf`,
+        `${BACKEND_URL}/download-consent-pdf`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
