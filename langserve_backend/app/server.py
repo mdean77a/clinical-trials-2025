@@ -145,91 +145,153 @@ async def generate_consent_form(request: Request):
 async def revise():
     return JSONResponse({'status': 'accepted'})
 
+from fastapi import FastAPI, Request
+from fastapi.responses import StreamingResponse, JSONResponse
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from io import BytesIO
+import re
+
+def clean_text_for_pdf(text: str) -> str:
+    if not text:
+        return ""
+    
+    # Remove HTML tags and normalize whitespace
+    cleaned = re.sub(r'<[^>]+>', '', text)
+    cleaned = re.sub(r'\s+', ' ', cleaned)
+    cleaned = cleaned.strip()
+    
+    # Split into paragraphs and filter empty lines
+    paragraphs = [p.strip() for p in cleaned.split('\n') if p.strip()]
+    
+    return '\n\n'.join(paragraphs)
+
 @app.post("/download-consent-pdf")
 async def download_consent_pdf(request: Request):
-    data = await request.json()
-    if not data or 'data' not in data:
-        return JSONResponse({"error": "No data provided"}, status_code=400)
+    try:
+        data = await request.json()
+        if not data or 'data' not in data:
+            return JSONResponse({"error": "No data provided"}, status_code=400)
 
-    content = data['data']
-    buffer = BytesIO()
-    
-    # Set up the PDF document
-    doc = SimpleDocTemplate(buffer, pagesize=letter, title="Consent Form")
-    styles = getSampleStyleSheet()
-    
-    # Customize styles for better presentation
-    section_title_style = ParagraphStyle(
-        name="SectionTitle",
-        parent=styles["Heading2"],
-        spaceAfter=10,
-        textColor=colors.darkblue,
-        fontSize=14,
-        leading=16
-    )
-    
-    normal_text_style = ParagraphStyle(
-        name="NormalText",
-        parent=styles["BodyText"],
-        fontSize=12,
-        leading=14,
-        spaceAfter=10
-    )
+        content = data['data']
+        buffer = BytesIO()
+        
+        # Set up the PDF document
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=letter,
+            title="Consent Form",
+            leftMargin=72,  # 1 inch margins
+            rightMargin=72,
+            topMargin=72,
+            bottomMargin=72
+        )
+        
+        styles = getSampleStyleSheet()
+        
+        # Customize styles
+        section_title_style = ParagraphStyle(
+            'SectionTitle',
+            parent=styles['Heading2'],
+            fontSize=12,
+            leading=14,
+            spaceBefore=12,
+            spaceAfter=6,
+            textColor=colors.black,
+            fontName='Helvetica-Bold'
+        )
+        
+        normal_text_style = ParagraphStyle(
+            'NormalText',
+            parent=styles['Normal'],
+            fontSize=10,
+            leading=14,
+            spaceBefore=6,
+            spaceAfter=6,
+            fontName='Helvetica'
+        )
 
-    story = []
+        story = []
 
-    # Function to add sections with headers and content
-    def add_section(title, content):
-        if content.strip():
-            # Add title
-            story.append(Paragraph(title, section_title_style))
-            story.append(Spacer(1, 10))
+        def add_section(title: str, content: str):
+            if not content:
+                return
+                
+            # Add section title
+            story.append(Paragraph(title.upper(), section_title_style))
+            
+            # Clean and process content
+            cleaned_content = clean_text_for_pdf(content)
+            
+            # Split into paragraphs and add each
+            for paragraph in cleaned_content.split('\n\n'):
+                if paragraph.strip():
+                    try:
+                        story.append(Paragraph(paragraph.strip(), normal_text_style))
+                    except Exception as e:
+                        print(f"Error processing paragraph: {e}")
+                        # Add as plain text if parsing fails
+                        story.append(Paragraph(str(paragraph.strip()), normal_text_style))
+            
+            story.append(Spacer(1, 12))
 
-            # Convert Markdown to HTML and then to PDF Paragraphs
-            html_content = markdown2.markdown(content)
-            paragraphs = html_content.split('\n')
-            for para in paragraphs:
-                if para.strip():
-                    story.append(Paragraph(para, normal_text_style))
-            story.append(Spacer(1, 15))
+        # Add document header
+        story.append(Paragraph("CLINICAL TRIAL CONSENT FORM", styles['Heading1']))
+        story.append(Spacer(1, 20))
 
-    # Adding sections with content
-    add_section("Parental Permission, Teen Assent and Authorization Document", "")
-    add_section("Study Title: Personalized Immunomodulation in Pediatric Sepsis-Induced MODS (PRECISE)", "")
-    add_section("Version Date: June 24, 2024", "")
+        # Add all sections
+        sections = [
+            ("SUMMARY", content.get("summary", "")),
+            ("BACKGROUND", content.get("background", "")),
+            ("NUMBER OF PARTICIPANTS", content.get("number_of_participants", "")),
+            ("STUDY PROCEDURES", content.get("study_procedures", "")),
+            ("ALTERNATIVE PROCEDURES", content.get("alt_procedures", "")),
+            ("RISKS", content.get("risks", "")),
+            ("BENEFITS", content.get("benefits", ""))
+        ]
 
-    add_section("SUMMARY", content.get("summary", ""))
-    add_section("BACKGROUND", content.get("background", ""))
-    add_section("NUMBER OF PARTICIPANTS", content.get("number_of_participants", ""))
-    add_section("STUDY PROCEDURES", content.get("study_procedures", ""))
-    add_section("ALTERNATIVE PROCEDURES", content.get("alt_procedures", ""))
-    add_section("RISKS", content.get("risks", ""))
-    add_section("BENEFITS", content.get("benefits", ""))
-    add_section("COSTS AND COMPENSATION TO PARTICIPANTS", content.get("costsAndCompensationToParticipants", ""))
-    add_section("SINGLE IRB CONTACT", content.get("singleIRBContact", ""))
+        for title, text in sections:
+            add_section(title, text)
 
-    # Adding signature fields (static content, as per the provided example)
-    story.append(Spacer(1, 20))
-    story.append(Paragraph("PARENT/GUARDIAN CONSENT:", section_title_style))
-    story.append(Spacer(1, 10))
-    story.append(Paragraph("I confirm that I have read this parental permission document and have had the opportunity to ask questions. I will be given a signed copy of the parental permission form to keep.", normal_text_style))
-    story.append(Spacer(1, 15))
-    story.append(Paragraph("Child’s Name: __________________________________________", normal_text_style))
-    story.append(Spacer(1, 10))
-    story.append(Paragraph("Parent/Guardian’s Name: __________________________________", normal_text_style))
-    story.append(Spacer(1, 10))
-    story.append(Paragraph("Parent/Guardian’s Signature: ______________________________ Date/Time: ____________", normal_text_style))
-    story.append(Spacer(1, 10))
-    story.append(Paragraph("Name of Person Obtaining Authorization and Consent: ____________________________", normal_text_style))
-    story.append(Spacer(1, 10))
-    story.append(Paragraph("Signature of Person Obtaining Authorization and Consent: ____________ Date/Time: ____________", normal_text_style))
+        # Add signature section
+        story.append(Spacer(1, 30))
+        story.append(Paragraph("SIGNATURES", section_title_style))
+        story.append(Spacer(1, 20))
+        
+        # Add signature lines
+        signature_text = """
+        Parent/Guardian Name: _______________________________
+        
+        Signature: _______________________________ Date: ____________
+        
+        Person Obtaining Consent: _______________________________
+        
+        Signature: _______________________________ Date: ____________
+        """
+        
+        story.append(Paragraph(signature_text, normal_text_style))
 
-    # Generate PDF
-    doc.build(story)
-
-    buffer.seek(0)
-    return StreamingResponse(buffer, media_type='application/pdf', headers={"Content-Disposition": "attachment; filename=consent_form.pdf"})
-
+        # Generate PDF
+        doc.build(story)
+        buffer.seek(0)
+        
+        return StreamingResponse(
+            buffer,
+            media_type='application/pdf',
+            headers={
+                "Content-Disposition": "attachment; filename=consent_form.pdf",
+                "Access-Control-Allow-Origin": "*"
+            }
+        )
+        
+    except Exception as e:
+        print(f"Error generating PDF: {str(e)}")
+        return JSONResponse(
+            {"error": f"Failed to generate PDF: {str(e)}"},
+            status_code=500
+        )
 
 if __name__ == "__main__":
     import uvicorn

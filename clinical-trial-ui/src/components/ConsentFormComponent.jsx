@@ -1,13 +1,28 @@
-import { useState, useEffect, useRef } from "react";
-import { jsPDF } from "jspdf";
-import "./ConsentFormComponent.css";
-import "./animations.css";
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Box,
+  Paper,
+  Typography,
+  TextField,
+  Button,
+  CircularProgress,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  IconButton,
+  Snackbar,
+  Alert
+} from '@mui/material';
+import {
+  ExpandMore,
+  Save,
+  Download,
+  Refresh,
+  Chat
+} from '@mui/icons-material';
+import { downloadConsentPdf, validateFormData } from '../services/pdfService';
 
-function ConsentFormComponent({
-  selectedFiles,
-  textAreaData,
-  onTextAreaDataUpdate,
-}) {
+function ConsentFormComponent({ selectedFiles, textAreaData, onTextAreaDataUpdate }) {
   const initialData = {
     summary: "",
     background: "",
@@ -23,47 +38,32 @@ function ConsentFormComponent({
   const [activeField, setActiveField] = useState(null);
   const [aiAssistantVisible, setAiAssistantVisible] = useState(false);
   const [aiAssistantInput, setAiAssistantInput] = useState("");
-  const [collapsedSections, setCollapsedSections] = useState({
-    "Part 1: Master Consent": false,
-    "Part 2: Site Specific Information": false,
-  });
   const [loading, setLoading] = useState(false);
   const [streamStarted, setStreamStarted] = useState(false);
+  const [error, setError] = useState(null);
   
   const isGeneratedRef = useRef(false);
   const textareaRefs = useRef({});
   const processingFields = useRef(new Set());
   const bufferQueue = useRef([]);
 
-  const scrollToBottom = (key) => {
-    if (textareaRefs.current[key]) {
-      const textarea = textareaRefs.current[key];
-      textarea.scrollTop = textarea.scrollHeight;
-    }
-  };
-
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 
   useEffect(() => {
     const generateConsentForm = async () => {
-      if (isGeneratedRef.current || !selectedFiles.length) {
-        return;
-      }
+      if (isGeneratedRef.current || !selectedFiles.length) return;
       isGeneratedRef.current = true;
 
       try {
         setLoading(true);
-        const response = await fetch(
-          `${BACKEND_URL}/generate-consent-form`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ files: selectedFiles }),
-          }
-        );
+        const response = await fetch(`${BACKEND_URL}/generate-consent-form`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ files: selectedFiles }),
+        });
 
         if (!response.body) {
-          throw new Error("ReadableStream not supported in this browser.");
+          throw new Error("ReadableStream not supported");
         }
 
         const reader = response.body.getReader();
@@ -85,12 +85,9 @@ function ConsentFormComponent({
           } catch (error) {
             console.error("Error parsing chunk:", error);
           }
-
-          if (!streamStarted) {
-            setLoading(false);
-          }
         }
       } catch (error) {
+        setError("Failed to generate consent form");
         console.error("Error generating consent form:", error);
       } finally {
         setLoading(false);
@@ -99,7 +96,7 @@ function ConsentFormComponent({
     };
 
     generateConsentForm();
-  }, [selectedFiles]);
+  }, [selectedFiles, BACKEND_URL]);
 
   const processField = async (key, content, existingContent = '') => {
     if (processingFields.current.has(key)) return;
@@ -116,7 +113,6 @@ function ConsentFormComponent({
             ...prev,
             [key]: currentText
           }));
-          scrollToBottom(key);
           await new Promise(r => setTimeout(r, 30));
         }
       }
@@ -139,7 +135,6 @@ function ConsentFormComponent({
 
       await Promise.all(updatePromises);
 
-      // Process any queued updates
       while (bufferQueue.current.length > 0) {
         const nextUpdate = bufferQueue.current.shift();
         if (nextUpdate) {
@@ -153,19 +148,6 @@ function ConsentFormComponent({
 
     updateFields();
   }, [buffer]);
-
-  // Rest of the component remains the same...
-  const handleFocus = (field) => {
-    setActiveField(field);
-    setAiAssistantVisible(true);
-  };
-
-  const handleBlur = (e) => {
-    if (!e.currentTarget.contains(e.relatedTarget)) {
-      setActiveField(null);
-      setAiAssistantVisible(false);
-    }
-  };
 
   const handleAiAssistantSubmit = async (e) => {
     e.preventDefault();
@@ -182,28 +164,46 @@ function ConsentFormComponent({
 
       const result = await response.json();
       if (result && result[activeField]) {
-        setData((prevData) => ({
+        setData(prevData => ({
           ...prevData,
           [activeField]: result[activeField],
         }));
-        onTextAreaDataUpdate((prevData) => ({
+        onTextAreaDataUpdate(prevData => ({
           ...prevData,
           [activeField]: result[activeField],
         }));
-        scrollToBottom(activeField);
       }
 
       setAiAssistantInput("");
       setAiAssistantVisible(false);
     } catch (error) {
+      setError("Failed to process AI assistant request");
       console.error("Error with AI assistant:", error);
+    }
+  };
+
+  const handleDownload = async () => {
+    try {
+      setLoading(true);
+      
+      // Validate form data before sending
+      const { isValid, errors: validationErrors } = validateFormData(data);
+      if (!isValid) {
+        setError("Please fill in all required fields before downloading");
+        return;
+      }
+  
+      await downloadConsentPdf(data);
+    } catch (error) {
+      setError(error.message || 'Failed to download PDF');
+    } finally {
+      setLoading(false);
     }
   };
 
   const sections = [
     {
       title: "Part 1: Master Consent",
-      key: "Part 1: Master Consent",
       fields: [
         { key: "summary", label: "Summary" },
         { key: "background", label: "Background" },
@@ -213,78 +213,37 @@ function ConsentFormComponent({
         { key: "risks", label: "Risks" },
         { key: "benefits", label: "Benefits" },
       ],
-    },
+    }
   ];
 
-  const toggleSection = (sectionKey) => {
-    setCollapsedSections((prevState) => ({
-      ...prevState,
-      [sectionKey]: !prevState[sectionKey],
-    }));
-  };
-
-  const handleDownloadPDF = async () => {
-    try {
-      const response = await fetch(
-        `${BACKEND_URL}/download-consent-pdf`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ data }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to generate PDF");
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(new Blob([blob]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", "consent_form.pdf");
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
-    } catch (error) {
-      console.error("Error downloading PDF:", error);
-    }
-  };
-
-  const hasData = Object.values(data).some((value) => value !== "");
+  const hasData = Object.values(data).some(value => value !== "");
 
   return (
-    <div className="consent-form-component">
+    <Box sx={{ p: 3 }}>
       {loading && !streamStarted ? (
-        <div className="loading-spinner">Loading...</div>
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+          <CircularProgress />
+        </Box>
       ) : (
-        <div className="text-area-component">
+        <>
           {sections.map((section, sIndex) => (
-            <div key={sIndex} className="consent-section">
-              <h2
-                onClick={() => toggleSection(section.key)}
-                className="collapsible-header"
-              >
+            <Paper key={sIndex} elevation={2} sx={{ mb: 3 }}>
+              <Typography variant="h5" sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
                 {section.title}
-                <span className="toggle-icon">
-                  {collapsedSections[section.key] ? "+" : "-"}
-                </span>
-              </h2>
-              {!collapsedSections[section.key] && (
-                <div className="section-content">
-                  {section.fields.map((field, fIndex) => (
-                    <div
-                      key={fIndex}
-                      className="text-area-container"
-                      onBlur={handleBlur}
-                      tabIndex="-1"
-                    >
-                      <div className="text-area-field">
-                        <label>{field.label}</label>
-                        <textarea
-                          ref={el => textareaRefs.current[field.key] = el}
+              </Typography>
+              <Box sx={{ p: 2 }}>
+                {section.fields.map((field, fIndex) => (
+                  <Accordion key={fIndex} defaultExpanded>
+                    <AccordionSummary expandIcon={<ExpandMore />}>
+                      <Typography variant="subtitle1">{field.label}</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                      <Box position="relative">
+                        <TextField
+                          fullWidth
+                          multiline
+                          minRows={4}
                           value={data[field.key]}
-                          onFocus={() => handleFocus(field.key)}
                           onChange={(e) => {
                             const newData = {
                               ...data,
@@ -292,40 +251,77 @@ function ConsentFormComponent({
                             };
                             setData(newData);
                             onTextAreaDataUpdate(newData);
-                            scrollToBottom(field.key);
+                          }}
+                          onFocus={() => {
+                            setActiveField(field.key);
+                            setAiAssistantVisible(true);
                           }}
                         />
-                      </div>
-                      {activeField === field.key && aiAssistantVisible && (
-                        <div className="ai-assistant-panel">
-                          <form onSubmit={handleAiAssistantSubmit}>
-                            <input
-                              type="text"
-                              placeholder="Ask AI assistant"
-                              value={aiAssistantInput}
-                              onChange={(e) =>
-                                setAiAssistantInput(e.target.value)
-                              }
-                            />
-                            <button type="submit">Submit</button>
-                          </form>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                        {activeField === field.key && aiAssistantVisible && (
+                          <Paper 
+                            elevation={3} 
+                            sx={{ 
+                              position: 'absolute', 
+                              bottom: -80, 
+                              left: 0, 
+                              right: 0, 
+                              p: 2,
+                              zIndex: 1 
+                            }}
+                          >
+                            <Box component="form" onSubmit={handleAiAssistantSubmit} display="flex" gap={1}>
+                              <TextField
+                                fullWidth
+                                size="small"
+                                placeholder="Ask AI assistant"
+                                value={aiAssistantInput}
+                                onChange={(e) => setAiAssistantInput(e.target.value)}
+                              />
+                              <Button type="submit" variant="contained" startIcon={<Chat />}>
+                                Ask
+                              </Button>
+                            </Box>
+                          </Paper>
+                        )}
+                      </Box>
+                    </AccordionDetails>
+                  </Accordion>
+                ))}
+              </Box>
+            </Paper>
           ))}
-        </div>
-      )} 
-      {hasData && !loading && (
-        <div className="actions">
-          <button onClick={handleDownloadPDF}>Download PDF</button>
-          <button onClick={() => window.location.reload()}>Restart</button>
-        </div>
+
+          {hasData && !loading && (
+            <Box display="flex" gap={2} justifyContent="flex-end">
+              <Button
+                variant="contained"
+                onClick={handleDownload}
+                startIcon={<Download />}
+              >
+                Download PDF
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={() => window.location.reload()}
+                startIcon={<Refresh />}
+              >
+                Restart
+              </Button>
+            </Box>
+          )}
+        </>
       )}
-    </div>
+
+      <Snackbar 
+        open={!!error} 
+        autoHideDuration={6000} 
+        onClose={() => setError(null)}
+      >
+        <Alert onClose={() => setError(null)} severity="error" sx={{ width: '100%' }}>
+          {error}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 }
 
